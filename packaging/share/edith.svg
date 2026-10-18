@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Edith: a blue editor window in the CGA colors with a menu bar, text and the cursor -->
+  <rect x="8" y="8" width="240" height="240" rx="28" fill="#0000AA"/>
+  <rect x="8" y="8" width="240" height="44" rx="28" fill="#AAAAAA"/>
+  <rect x="8" y="30" width="240" height="22" fill="#AAAAAA"/>
+  <rect x="28" y="22" width="40" height="16" rx="3" fill="#000000"/>
+  <rect x="80" y="22" width="40" height="16" rx="3" fill="#000000"/>
+  <rect x="132" y="22" width="40" height="16" rx="3" fill="#000000"/>
+  <rect x="32" y="76" width="120" height="14" rx="3" fill="#FFFFFF"/>
+  <rect x="48" y="104" width="150" height="14" rx="3" fill="#FFFF55"/>
+  <rect x="48" y="132" width="96" height="14" rx="3" fill="#55FFFF"/>
+  <rect x="32" y="160" width="60" height="14" rx="3" fill="#FFFFFF"/>
+  <rect x="100" y="156" width="14" height="22" fill="#FFFFFF"/>
+  <rect x="8" y="198" width="240" height="20" fill="#00AAAA"/>
+</svg>

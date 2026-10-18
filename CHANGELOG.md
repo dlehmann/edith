@@ -1,0 +1,27 @@
+# Changelog
+
+All notable changes to Edith are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and Edith uses [Semantic Versioning](https://semver.org/) (the version is set in `src/version.h`).
+
+Write each entry on one line: the section of a version becomes the release notes on GitHub, which keep line breaks.
+
+## [Unreleased]
+
+## [1.0.0] - 2026-10-18
+
+First public release.
+
+### Added
+
+- Menus (Alt+letter or F10; h j k l move in menus and dialogs like the arrow keys), dialogs, mouse support, split windows and tabs, line numbers.
+- Syntax highlighting with tree-sitter for more than 50 languages, including embedded languages.
+- Find and Change, also with regular expressions (Vim's very magic syntax with = & ~ @ % as plain characters); the replacement can use the groups \1 to \9.
+- Options > Show Invisible Characters (in Vim mode `:set list`) shows tabs as →, spaces as ·, line ends as ¶ (↵ in CRLF files), no-break spaces as °, control characters as ␀ to ␟ and marks zero-width characters with a colored cell.
+- The status line shows the language, the encoding (UTF-8, UTF-8 BOM or Latin-1), the cursor position and, while text is selected, the start and end of the selection and its length.
+- Reformat Code with the standard formatters, the built-in JSON formatter and re-indenting by the syntax tree.
+- Vim mode (F12 or `--vim`) with motions, operators, text objects, registers, macros, Vim patterns, Ex commands and mappings; a selection becomes Visual mode when it is turned on and back; a few of Vim's easter eggs (try `:help!`).
+- Runs on Linux and macOS.
+- User interface in English, German, French, Spanish, Italian, Hungarian, Polish and Klingon.
+- Packages for Arch Linux (`.pkg.tar.zst` and `PKGBUILD`) and Debian/Ubuntu (`.deb`), an AppImage, a static Linux binary and a binary for macOS on Apple Silicon, built by the release workflow; a manual page (`man edith`) and a desktop entry; the binary packages contain the license texts of all third-party code (`THIRD_PARTY_LICENSES`).
+- `--version`, `--` to end the options; unknown options are reported.
+- `make` passes `CPPFLAGS` to the compiler, so distribution package builds get their hardening flags; `SECURITY.md` describes how to report vulnerabilities.
+- Terminals: the key sequences of rxvt/urxvt, `ESC O` with modifiers and xterm's `modifyOtherKeys`; `ESCDELAY` for slow connections; `COLUMNS`/`LINES` when the terminal reports no size; bold instead of bright colors on the Linux console; a clear message for `TERM=dumb`; control characters (also C1 control characters in binary files) are never written to the terminal; the terminal is given back and set up again when the shell stops and continues Edith.

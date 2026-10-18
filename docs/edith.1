@@ -1,0 +1,123 @@
+.TH Edith 1 "2026-10-18" "edith 1.0.0" "User Commands"
+.SH NAME
+edith \- a friendly text editor for the terminal
+.SH SYNOPSIS
+.B edith
+.RB [ \-n | \-r ]
+.RB [ \-o | \-O | \-p ]
+.RB [ \-\-vim ]
+.RB [ \-\-lang=\fICODE\fR ]
+.RB [ \-\- ]
+.RI [ file " ...]"
+.br
+.B edith
+.BR \-\-help " | " \-\-version " | " \-\-ts\-check
+.SH DESCRIPTION
+.B edith
+is a text editor for the terminal with pull\-down menus, dialogs and mouse support, split
+windows and tabs, syntax highlighting with tree\-sitter for more than 50 languages, code
+formatting and an optional Vim mode.
+.PP
+F1 shows the key bindings, F10 or Alt opens the menu bar. Files that do not exist are
+created when they are saved. Several files are opened in tabs.
+.SH OPTIONS
+.TP
+.B \-n
+Show line numbers.
+.TP
+.B \-r
+Show line numbers relative to the cursor line.
+.TP
+.BR \-o ", " \-O
+Open several files in windows above each other / side by side.
+.TP
+.B \-p
+Open several files in tabs (the default).
+.TP
+.B \-\-vim
+Start with the Vim key bindings (Options > Vim Mode).
+.TP
+.BI \-\-lang= CODE
+The language of the user interface:
+.BR en ", " de ", " fr ", " es ", " it ", " hu ", " pl " or " tlh .
+.TP
+.B \-\-
+End of the options: all following arguments are file names.
+.TP
+.B \-\-ts\-check
+Load every compiled\-in tree\-sitter grammar and query and report problems.
+.TP
+.BR \-h ", " \-\-help
+Show a summary of the options.
+.TP
+.B \-\-version
+Show the version.
+.SH KEYS
+.TS
+l l.
+Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Q	new, open, save, exit
+Ctrl+Z, Ctrl+Y	undo, redo
+Ctrl+X, Ctrl+C, Ctrl+V, Ctrl+A	cut, copy, paste, select all
+Ctrl+F, F3, Ctrl+R, Ctrl+G	find, find next, replace, go to line (also with regular expressions)
+Shift+movement	select text
+Tab, Shift+Tab	indent, unindent the selected lines
+F8	reformat code
+F6, Shift+F6, Ctrl+W	next window, previous window, close window
+Ctrl+T, F4, Ctrl+PgDn, Ctrl+PgUp	new tab, close tab, next tab, previous tab
+F12	Vim mode on and off
+F1	help
+F10, Alt	menu bar
+Alt+letter	open a menu, choose a menu entry
+h j k l	arrow keys in menus and dialogs (not in input fields)
+.TE
+.SH ENVIRONMENT
+.TP
+.BR LANGUAGE ", " LC_ALL ", " LC_MESSAGES ", " LANG
+Select the language of the user interface (English for unknown locales).
+.TP
+.B COLORTERM
+Values containing
+.B truecolor
+or
+.B 24bit
+enable 24\-bit colors.
+.TP
+.B EDITH_COLORS
+.B 16
+forces 16 colors,
+.B 24
+forces 24\-bit colors.
+.TP
+.B ESCDELAY
+Milliseconds to wait after Esc for the rest of an escape sequence (default 30); raise it on
+slow connections if keys like the arrows arrive as Esc and letters.
+.TP
+.B XDG_CONFIG_HOME
+Directory of the configuration (default
+.IR ~/.config ).
+.SH FILES
+.TP
+.I ~/.config/edith/formatters
+The formatter for each language used by Reformat Code, one line per language. The command is
+run with
+.I /bin/sh
+in the file's directory, with the text on its standard input; Edith reads the result from its
+standard output. Formatters run only for Reformat Code; some read project configuration that
+is itself code (such as
+.IR prettier.config.js ),
+so do not reformat files of projects you do not trust.
+.RS
+.PP
+.nf
+# language = command  ({file} = the file name, {tabwidth} = the tab width)
+Python = black \-q \-\-stdin\-filename {file} \-
+JSON = builtin
+Rust = none
+.fi
+.RE
+.SH EXIT STATUS
+0 on success, 1 when no terminal is available, 2 for invalid options.
+.SH SEE ALSO
+.BR vim (1)
+.PP
+The README and the help dialog (F1) describe all features.

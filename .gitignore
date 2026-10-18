@@ -1,0 +1,17 @@
+# Build output
+/build/
+/edith
+
+# Local makepkg runs in packaging/arch (see the comment in its PKGBUILD)
+/packaging/arch/*.tar.gz
+/packaging/arch/*.pkg.tar.zst
+/packaging/arch/pkg/
+/packaging/arch/src/
+
+# Downloaded by tools/fetch-grammars.sh
+/third_party/
+
+# Copied into the site by .github/workflows/pages.yml (and for a local preview)
+/site/screenshots/
+/site/edith.svg
+/site/preview.html

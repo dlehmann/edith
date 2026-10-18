@@ -1,0 +1,152 @@
+# Builds the release files when a version tag (v1.2.3) is pushed and attaches them to a
+# *draft* release on GitHub: check it and press "Publish" to release it.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+# Only the job that creates the release may write; the build jobs run downloaded tools.
+permissions:
+  contents: read
+
+jobs:
+  grammars:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Cache third_party
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: third_party
+          key: third-party-${{ hashFiles('tools/fetch-grammars.sh') }}
+      - name: Download tree-sitter and the grammars
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: tools/fetch-grammars.sh
+      - run: tar -czf third_party.tar.gz third_party
+      - uses: actions/upload-artifact@v4
+        with:
+          name: third_party
+          path: third_party.tar.gz
+          retention-days: 1
+
+  # The static binary, source tarball, .deb, AppImage and PKGBUILD
+  build:
+    needs: grammars
+    runs-on: ubuntu-latest
+    # an older glibc: the static binary then runs on old kernels and distributions as well
+    container: debian:bookworm
+    steps:
+      - name: Install the build tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends g++ make git ca-certificates curl file python3 xz-utils
+      - uses: actions/checkout@v4
+      - name: Allow git in the container
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - uses: actions/download-artifact@v4
+        with:
+          name: third_party
+      - run: tar -xzf third_party.tar.gz && rm third_party.tar.gz
+      - name: The tag must match src/version.h
+        run: test "v$(make -s version)" = "$GITHUB_REF_NAME"
+      - name: Build (statically linked, must be free of warnings)
+        shell: bash
+        run: |
+          set -o pipefail  # a failed build must fail the step, not only the warning check
+          make STATIC=1 -j"$(nproc)" 2>&1 | tee build.log
+          ! grep -E '^src/.*warning:' build.log
+      - name: Test
+        run: make STATIC=1 -j"$(nproc)" test
+      - name: Check the grammars
+        run: ./edith --ts-check
+      - name: Install appimagetool
+        run: |
+          curl -sSfL -o /usr/local/bin/appimagetool \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x /usr/local/bin/appimagetool
+      - name: Build the release files
+        env:
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+          APPIMAGE_EXTRACT_AND_RUN: 1
+        run: packaging/build-release.sh build/release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-files
+          path: build/release/
+          retention-days: 1
+
+  # The Arch Linux package (.pkg.tar.zst), built with makepkg from the source tarball
+  arch:
+    needs: build
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - name: Install the build tools
+        run: pacman -Syu --noconfirm --needed git python
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-files
+          path: release
+      - name: Build and test with makepkg
+        run: |
+          useradd -m builder
+          mkdir /home/builder/pkg
+          cp packaging/arch/PKGBUILD "release/edith-${GITHUB_REF_NAME#v}.tar.gz" /home/builder/pkg/
+          chown -R builder /home/builder/pkg
+          cd /home/builder/pkg
+          sudo -u builder env MAKEFLAGS="-j$(nproc)" makepkg --noconfirm
+      - name: Collect the package
+        run: |
+          # the package without the -debug package that makepkg also builds here
+          pkg="$(ls /home/builder/pkg/edith-editor-"${GITHUB_REF_NAME#v}"-*.pkg.tar.zst)"
+          mkdir out
+          cp "$pkg" out/
+          # the same file without the version, for .../releases/latest/download/ links
+          cp "$pkg" "out/edith-editor-$(uname -m).pkg.tar.zst"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arch-package
+          path: out/
+          retention-days: 1
+
+  # The macOS binary (Apple Silicon)
+  macos:
+    uses: ./.github/workflows/macos.yml
+
+  release:
+    needs: [build, arch, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-files
+          path: files
+      - uses: actions/download-artifact@v4
+        with:
+          name: arch-package
+          path: files
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-binary
+          path: files
+      - name: Checksums of all files
+        run: cd files && rm -f SHA256SUMS && sha256sum -- * > SHA256SUMS && cat SHA256SUMS
+      - name: Release notes from CHANGELOG.md
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          awk -v v="$v" '$0 ~ "^## \\[" v "\\]" {p = 1; next} p && /^## \[/ {exit} p' CHANGELOG.md > notes.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          name: Edith ${{ github.ref_name }}
+          body_path: notes.md
+          files: files/*

@@ -1,0 +1,67 @@
+# Builds and tests Edith on macOS (Apple Silicon) and uploads the archive
+# edith-<version>-macos-arm64.tar.gz (and a copy without the version) as the artifact
+# "macos-binary". Called by the release workflow; can also be started by hand (Actions > macOS).
+name: macOS
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  grammars:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Cache third_party
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: third_party
+          key: third-party-${{ hashFiles('tools/fetch-grammars.sh') }}
+      - name: Download tree-sitter and the grammars
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: tools/fetch-grammars.sh
+      - run: tar -czf third_party.tar.gz third_party
+      - uses: actions/upload-artifact@v4
+        with:
+          name: third_party-macos
+          path: third_party.tar.gz
+          retention-days: 1
+
+  build:
+    needs: grammars
+    runs-on: macos-14  # Apple Silicon
+    env:
+      # runs on every Mac with Apple Silicon (macOS 11 Big Sur was the first for them)
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: third_party-macos
+      - run: tar -xzf third_party.tar.gz && rm third_party.tar.gz
+      - name: Build and test
+        run: make -j"$(sysctl -n hw.ncpu)" test
+      - name: Package
+        run: |
+          v="$(make -s version)"
+          d="edith-$v-macos-arm64"
+          mkdir -p out "$d"
+          cp edith docs/edith.1 LICENSE README.md "$d/"
+          tar -czf "out/$d.tar.gz" "$d"
+          # the same file without the version, for .../releases/latest/download/ links
+          cp "out/$d.tar.gz" out/edith-macos-arm64.tar.gz
+          file edith
+          otool -L edith
+          otool -l edith | grep -A3 LC_BUILD_VERSION
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-binary
+          path: out/
+          retention-days: 1

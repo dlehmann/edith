@@ -1,0 +1,47 @@
+name: CI
+
+# Only started by hand (Actions > CI > Run workflow): the release workflow builds and tests
+# every version tag on Linux, macOS and Arch Linux.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cache third_party
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: third_party
+          key: third-party-${{ hashFiles('tools/fetch-grammars.sh') }}
+
+      - name: Download tree-sitter and the grammars
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: tools/fetch-grammars.sh
+
+      - name: Build (must be free of warnings)
+        run: |
+          set -o pipefail  # a failed build must fail the step, not only the warning check
+          make -j"$(nproc)" 2>&1 | tee build.log
+          ! grep -E '^src/.*warning:' build.log
+
+      - name: Test
+        run: make test
+
+      - name: Check the grammars
+        run: ./edith --ts-check
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: edith-linux-x86_64
+          path: edith

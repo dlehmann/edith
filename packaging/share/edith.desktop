@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Edith
+GenericName=Text Editor
+Comment=A friendly text editor for the terminal
+Exec=edith %F
+Icon=edith
+Terminal=true
+Categories=Utility;TextEditor;ConsoleOnly;
+Keywords=editor;text;terminal;vim;
+MimeType=text/plain;

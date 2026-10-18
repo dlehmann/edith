@@ -1,0 +1,41 @@
+# Maintainer: Dennis Lehmann <mail@dennis-lehmann.de>
+#
+# Builds Edith from the source tarball of a release (made with "make dist"; it contains
+# third_party/, so the build needs no network). For a local build from this repository:
+#
+#     make dist && cp build/edith-*.tar.gz packaging/arch/ && cd packaging/arch && makepkg -si
+#
+# The release workflow attaches a copy of this file with the download URL and checksum filled in.
+
+pkgname=edith-editor
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Friendly text editor for the terminal with menus, mouse, tree-sitter highlighting and a Vim mode"
+arch=('x86_64' 'aarch64')
+url="https://github.com/dlehmann/edith"
+license=('MIT' 'Apache-2.0' 'CC0-1.0' 'Unlicense')
+depends=('glibc' 'gcc-libs')
+makedepends=('python')
+conflicts=('edith')  # the AUR package "edith" (an SFTP client) has the same command
+source=("edith-$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cd "edith-$pkgver"
+    make
+}
+
+check() {
+    cd "edith-$pkgver"
+    make test
+}
+
+package() {
+    cd "edith-$pkgver"
+    make DESTDIR="$pkgdir" PREFIX=/usr install
+    install -Dm644 packaging/share/edith.desktop "$pkgdir/usr/share/applications/edith.desktop"
+    install -Dm644 packaging/share/edith.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/edith.svg"
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    tools/third-party-licenses.sh > "$pkgdir/usr/share/licenses/$pkgname/THIRD_PARTY_LICENSES"
+    install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}
