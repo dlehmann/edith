@@ -30,7 +30,7 @@ jobs:
       - name: Assemble the site
         run: |
           mkdir -p _site/screenshots
-          cp site/index.html _site/
+          cp site/index.html site/impressum.html _site/
           cp docs/screenshots/*.png _site/screenshots/
           cp packaging/share/edith.svg _site/
       - uses: actions/upload-pages-artifact@v3
