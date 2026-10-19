@@ -149,6 +149,13 @@
   footer { background: var(--cyan); color: #ffffff; margin-top: 32px; }
   footer .wrap { display: flex; flex-wrap: wrap; gap: 4px 24px; padding-top: 8px; padding-bottom: 8px; }
   footer a { color: #ffffff; }
+
+  /* Desktop: menu bar and status line span the whole width, the status line stays at the bottom */
+  @media (min-width: 768px) {
+    .menubar .wrap, footer .wrap { max-width: none; }
+    footer { position: sticky; bottom: 0; z-index: 10; }
+    footer .right { margin-left: auto; }
+  }
 </style>
 </head>
 <body>
@@ -351,7 +358,7 @@
     <a href="https://github.com/dlehmann/edith">GitHub</a>
     <a href="https://github.com/dlehmann/edith/blob/master/CHANGELOG.md">Changelog</a>
     <a href="https://github.com/dlehmann/edith/issues">Report a bug</a>
-    <a href="impressum.html" lang="de">Impressum / Datenschutz</a>
+    <a class="right" href="impressum.html" lang="de">Impressum / Datenschutz</a>
   </div>
 </footer>
 

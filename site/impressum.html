@@ -63,6 +63,13 @@
   footer { background: var(--cyan); color: #ffffff; }
   footer .wrap { display: flex; flex-wrap: wrap; gap: 4px 24px; padding-top: 8px; padding-bottom: 8px; }
   footer a { color: #ffffff; }
+
+  /* Desktop: menu bar and status line span the whole width, the status line stays at the bottom */
+  @media (min-width: 768px) {
+    .menubar .wrap, footer .wrap { max-width: none; }
+    footer { position: sticky; bottom: 0; z-index: 10; }
+    footer .right { margin-left: auto; }
+  }
 </style>
 </head>
 <body>
