@@ -448,5 +448,10 @@ TEST(version_is_consistent) {
     std::string v = EDITH_VERSION;
     CHECK(readFile("docs/edith.1").find("\"edith " + v + "\"") != std::string::npos);
     CHECK(readFile("CHANGELOG.md").find("## [" + v + "]") != std::string::npos);
+    // the website: the download button and the links to the static binary and the AppImage
+    std::string site = readFile("site/index.html");
+    CHECK(site.find(">Download " + v + "<") != std::string::npos);
+    CHECK(site.find("/download/v" + v + "/edith-" + v + "-linux-x86_64.tar.gz") != std::string::npos);
+    CHECK(site.find("/download/v" + v + "/Edith-" + v + "-x86_64.AppImage") != std::string::npos);
     CHECK(readFile("packaging/arch/PKGBUILD").find("\npkgver=" + v + "\n") != std::string::npos);
 }

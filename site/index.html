@@ -300,10 +300,14 @@
         </div>
         <div class="box">
           <h3>Any Linux</h3>
-          <p>An AppImage and a static binary are on the
-            <a href="https://github.com/dlehmann/edith/releases/latest">release page</a>.</p>
-          <div class="cmd"><pre><span class="p">$ </span>chmod +x Edith-*.AppImage
-<span class="p">$ </span>./Edith-*.AppImage file.txt</pre></div>
+          <p>The static binary runs on every distribution:</p>
+          <div class="cmd"><pre><span class="p">$ </span>curl -LO https://github.com/dlehmann/edith/releases/download/v1.1.0/edith-1.1.0-linux-x86_64.tar.gz
+<span class="p">$ </span>tar -xzf edith-1.1.0-linux-x86_64.tar.gz
+<span class="p">$ </span>sudo install -m755 edith-1.1.0-linux-x86_64/edith /usr/local/bin/</pre></div>
+          <p style="margin-top:16px">Or the AppImage, without installing:</p>
+          <div class="cmd"><pre><span class="p">$ </span>curl -LO https://github.com/dlehmann/edith/releases/download/v1.1.0/Edith-1.1.0-x86_64.AppImage
+<span class="p">$ </span>chmod +x Edith-1.1.0-x86_64.AppImage
+<span class="p">$ </span>./Edith-1.1.0-x86_64.AppImage file.txt</pre></div>
         </div>
         <div class="box">
           <h3>From source</h3>
