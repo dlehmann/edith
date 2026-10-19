@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Makes the short demo video of the website (docs/screenshots/demo.mp4 and demo.webm): runs
+"""Makes the short demo video of the website (docs/screenshots/demo.mp4): runs
 ./edith in a pseudo terminal like tools/screenshots.py, plays the scene in SCENE below, renders
 every step as an image in the CGA colors and joins the images to a looping video with ffmpeg.
 
@@ -88,13 +88,9 @@ def main():
         common = ["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", listing,
                   "-vf", "fps=25,format=yuv420p", "-an"]
         mp4 = os.path.join(OUT, "demo.mp4")
-        webm = os.path.join(OUT, "demo.webm")
         subprocess.run(common + ["-c:v", "libx264", "-preset", "veryslow", "-tune", "animation", "-crf", "20",
                                  "-movflags", "+faststart", mp4], check=True)
-        subprocess.run(common + ["-c:v", "libvpx-vp9", "-crf", "30", "-b:v", "0", "-row-mt", "1", webm],
-                       check=True)
         print(mp4)
-        print(webm)
 
 
 if __name__ == "__main__":
