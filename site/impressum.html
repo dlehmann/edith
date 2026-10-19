@@ -44,10 +44,14 @@
   .wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px; width: 100%; }
 
   /* The menu bar */
-  .menubar { background: var(--gray); color: var(--dark); border-bottom: 1px solid var(--dark); }
+  .menubar {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--gray); color: var(--dark); border-bottom: 1px solid var(--dark);
+  }
   .menubar .wrap { display: flex; flex-wrap: wrap; gap: 0 4px; align-items: center; }
   .menubar a { color: var(--dark); text-decoration: none; padding: 3px 12px; white-space: nowrap; }
   .menubar a b { color: #ffffff; font-weight: normal; }
+  .menubar .close { margin-left: auto; }
   .menubar a:hover, .menubar a:focus-visible { background: var(--dark); color: var(--gray); outline: none; }
 
   main { flex: 1; padding: 64px 0; }
@@ -76,7 +80,7 @@
 
 <nav class="menubar">
   <div class="wrap">
-    <a href="./"><b>E</b>dith</a>
+    <a class="close" href="./" title="Schließen" aria-label="Schließen">X</a>
   </div>
 </nav>
 
