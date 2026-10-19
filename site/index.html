@@ -90,8 +90,17 @@
   }
 
   /* Hero */
-  .hero { padding: 72px 0 56px; }
-  .hero .wrap { display: grid; gap: 48px; grid-template-columns: minmax(0, 1fr); }
+  /* The top block fills the visible part of the window: --top and --bottom are the heights of the
+     menu bar and of the sticky status line (measured by the script at the end; the values here
+     are the fallback) */
+  :root { --top: 33px; --bottom: 0px; }
+  @media (min-width: 768px) { :root { --bottom: 44px; } }
+  .hero {
+    padding: 72px 0 56px; display: flex; align-items: center;
+    min-height: calc(100vh - var(--top) - var(--bottom));
+    min-height: calc(100svh - var(--top) - var(--bottom));
+  }
+  .hero .wrap { display: grid; gap: 48px; grid-template-columns: minmax(0, 1fr); width: 100%; }
   .hero h1 {
     margin: 0; font-size: clamp(52px, 10vw, 96px); line-height: 1; color: var(--heading);
     letter-spacing: -0.03em;
@@ -120,7 +129,7 @@
   @media (min-width: 900px) {
     .hero { padding: 40px 0; }
     .hero .wrap { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); align-items: center; gap: 40px; }
-    .hero .shot { width: auto; max-height: calc(100vh - 160px); justify-self: end; }
+    .hero .shot { width: auto; max-height: calc(100vh - var(--top) - var(--bottom) - 80px); justify-self: end; }
   }
 
   /* Sections */
@@ -392,6 +401,19 @@
 </footer>
 
 <script>
+  // The heights of the menu bar and of the sticky status line for the size of the top block
+  {
+    const root = document.documentElement, bar = document.querySelector(".menubar"),
+          foot = document.querySelector("footer");
+    const measure = () => {
+      root.style.setProperty("--top", bar.offsetHeight + "px");
+      const sticky = getComputedStyle(foot).position === "sticky";
+      root.style.setProperty("--bottom", (sticky ? foot.offsetHeight : 0) + "px");
+    };
+    measure();
+    addEventListener("resize", measure);
+  }
+
   // The menu on phones: opens and closes with the button, closes after choosing an entry,
   // with Escape and with a click elsewhere
   {
