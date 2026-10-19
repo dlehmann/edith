@@ -54,7 +54,7 @@
   a { color: var(--accent); text-underline-offset: 3px; }
   a:hover { color: var(--accent-2); }
   img { max-width: 100%; height: auto; display: block; }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 0 16px; }
 
   /* The menu bar */
   .menubar {
@@ -98,8 +98,7 @@
      (menu bar, padding and the sticky status line subtracted) */
   @media (min-width: 900px) {
     .hero { padding: 40px 0; }
-    .hero .wrap { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); align-items: center; gap: 40px;
-      max-width: 1400px; }
+    .hero .wrap { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); align-items: center; gap: 40px; }
     .hero .shot { width: auto; max-height: calc(100vh - 160px); justify-self: end; }
   }
 
