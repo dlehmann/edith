@@ -281,7 +281,7 @@ TEST(i18n_help_and_status_in_every_language) {
             mac |= line == U"MACOS";
         }
         CHECK(mac);
-        g_macKeys = false;
+        g_macKeys = false;  // (resetGlobals() sets it for the next test)
         u32 hint = statusHint();
         CHECK(hint.compare(0, 4, U"<F1=") == 0 && hint.find('>') != u32::npos);
         CHECK(strWidth(hint) < 60);

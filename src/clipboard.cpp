@@ -18,6 +18,7 @@ void clipboardSetCommands(const std::string& copy, const std::string& paste) {
     g_pasteCmd = paste;
 }
 
+#ifndef __APPLE__
 // Is the program in $PATH?
 static bool inPath(const std::string& prog) {
     const char* p = getenv("PATH");
@@ -32,6 +33,7 @@ static bool inPath(const std::string& prog) {
         s = e + 1;
     }
 }
+#endif
 
 static bool envSet(const char* name) {
     const char* v = getenv(name);

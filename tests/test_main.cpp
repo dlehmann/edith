@@ -43,6 +43,7 @@ void drainKeys() {
 void resetGlobals() {
     S = Settings();
     g_uiLang = UiLang::English;
+    g_macKeys = false;  // the same keys on every platform; test_macos.cpp turns the Mac keys on
     buildMenus();
 }
 
