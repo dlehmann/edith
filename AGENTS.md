@@ -98,7 +98,7 @@ make test                 # unit tests (build/edith-tests) and pty end-to-end te
 | `tools/` | grammar download and registry generation |
 | `docs/ARCHITECTURE.md` | overview of the code for contributors |
 | `docs/edith.1` | the manual page |
-| `docs/screenshots/` | screenshots for the README and the website, made by `tools/screenshots.py` from `samples/` |
+| `docs/screenshots/` | screenshots for the README and the website, made by `tools/screenshots.py` from `samples/`; the demo video of the website (`demo.mp4`, `demo.webm`) by `tools/demo.py` |
 | `site/` | the website (GitHub Pages, published by `.github/workflows/pages.yml` with the screenshots) |
 | `packaging/` | `.deb`, `PKGBUILD`, AppImage, desktop entry and icon, `build-release.sh` |
 | `.github/workflows/release.yml` | for a `v*` tag: build without warnings, `make test`, `--ts-check` on Linux, macOS and Arch Linux, then the release files in a draft release |

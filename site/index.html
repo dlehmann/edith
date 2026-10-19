@@ -53,7 +53,7 @@
   }
   a { color: var(--accent); text-underline-offset: 3px; }
   a:hover { color: var(--accent-2); }
-  img { max-width: 100%; height: auto; display: block; }
+  img, video { max-width: 100%; height: auto; display: block; }
   .wrap { max-width: 1400px; margin: 0 auto; padding: 0 16px; }
 
   /* The menu bar */
@@ -229,8 +229,11 @@
         <a class="button" href="https://github.com/dlehmann/edith">Source code</a>
       </div>
     </div>
-    <img class="shot" src="screenshots/main.png" width="1700" height="990"
-         alt="Edith editing a Python file: menu bar, line numbers, syntax highlighting and the status line">
+    <video class="shot" width="1700" height="990" autoplay muted loop playsinline poster="screenshots/main.png"
+           aria-label="Edith in use: the menus, typing Python code with syntax highlighting, finding text and a second window with a C file">
+      <source src="screenshots/demo.webm" type="video/webm">
+      <source src="screenshots/demo.mp4" type="video/mp4">
+    </video>
   </div>
 </header>
 
@@ -404,6 +407,13 @@
 </footer>
 
 <script>
+  // The demo video stays still (on its first picture) for people who prefer less motion
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const v = document.querySelector(".hero video");
+    v.removeAttribute("autoplay");
+    v.pause();
+  }
+
   // The heights of the menu bar and of the sticky status line for the size of the top block
   {
     const root = document.documentElement, bar = document.querySelector(".menubar"),
