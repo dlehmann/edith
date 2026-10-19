@@ -94,6 +94,14 @@
     border: 1px solid var(--line); border-radius: 6px;
     box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.55);
   }
+  /* Wider screens: text and screenshot side by side, the screenshot completely in the first screen
+     (menu bar, padding and the sticky status line subtracted) */
+  @media (min-width: 900px) {
+    .hero { padding: 40px 0; }
+    .hero .wrap { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); align-items: center; gap: 40px;
+      max-width: 1400px; }
+    .hero .shot { width: auto; max-height: calc(100vh - 160px); justify-self: end; }
+  }
 
   /* Sections */
   section { padding: 64px 0; border-top: 1px solid var(--line); }
