@@ -8,7 +8,7 @@ tree-sitter for more than 50 languages, code formatting and an optional, faithfu
 
 Everything – including the grammars of all languages – is compiled into a single executable.
 The user interface is available in English, German, French,
-Spanish, Italian, Hungarian, Polish and Klingon.
+Spanish, Italian, Hungarian and Polish.
 
 **Website:** [dlehmann.github.io/edith](https://dlehmann.github.io/edith/)
 
@@ -226,7 +226,7 @@ fish or any other shell, and runs shell commands (formatters, Vim's `:!`) with `
 
 | Setting | Effect |
 |---------|--------|
-| `LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, `LANG` | the UI language (`de_DE.UTF-8`, `fr`, `tlh`, ...); other locales fall back to English; `--lang=CODE` overrides it |
+| `LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, `LANG` | the UI language (`de_DE.UTF-8`, `fr`, `pl`, ...); other locales fall back to English; `--lang=CODE` overrides it |
 | `EDITH_COLORS=16` / `EDITH_COLORS=24` | force 16 colors / true color (default: from `COLORTERM`) |
 | `ESCDELAY` | milliseconds to wait for the rest of an escape sequence after Esc (default 30) |
 | `~/.config/edith/formatters` | formatter commands per language (also `$XDG_CONFIG_HOME/edith/formatters`) |

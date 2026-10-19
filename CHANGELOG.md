@@ -20,7 +20,7 @@ First public release.
 - Reformat Code with the standard formatters, the built-in JSON formatter and re-indenting by the syntax tree.
 - Vim mode (F12 or `--vim`) with motions, operators, text objects, registers, macros, Vim patterns, Ex commands and mappings; a selection becomes Visual mode when it is turned on and back; a few of Vim's easter eggs (try `:help!`).
 - Runs on Linux and macOS.
-- User interface in English, German, French, Spanish, Italian, Hungarian, Polish and Klingon.
+- User interface in English, German, French, Spanish, Italian, Hungarian and Polish.
 - Packages for Arch Linux (`.pkg.tar.zst` and `PKGBUILD`) and Debian/Ubuntu (`.deb`), an AppImage, a static Linux binary and a binary for macOS on Apple Silicon, built by the release workflow; a manual page (`man edith`) and a desktop entry; the binary packages contain the license texts of all third-party code (`THIRD_PARTY_LICENSES`).
 - `--version`, `--` to end the options; unknown options are reported.
 - `make` passes `CPPFLAGS` to the compiler, so distribution package builds get their hardening flags; `SECURITY.md` describes how to report vulnerabilities.
