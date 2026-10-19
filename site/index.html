@@ -93,8 +93,7 @@
   /* The top block fills the visible part of the window: --top and --bottom are the heights of the
      menu bar and of the sticky status line (measured by the script at the end; the values here
      are the fallback) */
-  :root { --top: 33px; --bottom: 0px; }
-  @media (min-width: 768px) { :root { --bottom: 44px; } }
+  :root { --top: 33px; --bottom: 44px; }
   .hero {
     padding: 72px 0 56px; display: flex; align-items: center;
     min-height: calc(100vh - var(--top) - var(--bottom));
@@ -183,15 +182,18 @@
   .langs li { border: 1px solid var(--line); border-radius: 999px; padding: 2px 12px; color: var(--muted); }
 
   /* The status line */
-  footer { background: var(--cyan); color: #ffffff; margin-top: 32px; }
+  footer { position: sticky; bottom: 0; z-index: 10; background: var(--cyan); color: #ffffff; margin-top: 32px; }
+  footer .right { margin-left: auto; }
+  /* Phones: only the link to the Impressum */
+  @media (max-width: 767px) {
+    footer .wrap > :not(.right) { display: none; }
+  }
   footer .wrap { display: flex; flex-wrap: wrap; gap: 4px 24px; padding-top: 8px; padding-bottom: 8px; }
   footer a { color: #ffffff; }
 
-  /* Desktop: menu bar and status line span the whole width, the status line stays at the bottom */
+  /* Desktop: menu bar and status line span the whole width */
   @media (min-width: 768px) {
     .menubar .wrap, footer .wrap { max-width: none; }
-    footer { position: sticky; bottom: 0; z-index: 10; }
-    footer .right { margin-left: auto; }
   }
 </style>
 </head>

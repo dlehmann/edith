@@ -65,16 +65,14 @@
   section + section { margin-top: 56px; padding-top: 56px; border-top: 1px solid var(--line); }
 
   /* The status line */
-  footer { background: var(--cyan); color: #ffffff; }
+  footer { position: sticky; bottom: 0; z-index: 10; background: var(--cyan); color: #ffffff; }
   footer .wrap { display: flex; flex-wrap: wrap; gap: 4px 24px; padding-top: 8px; padding-bottom: 8px; }
   footer a { color: #ffffff; }
   footer .home { margin-left: auto; }
 
-  /* Desktop: menu bar and status line span the whole width, the status line stays at the bottom */
+  /* Desktop: menu bar and status line span the whole width */
   @media (min-width: 768px) {
     .menubar .wrap, footer .wrap { max-width: none; }
-    footer { position: sticky; bottom: 0; z-index: 10; }
-    footer .right { margin-left: auto; }
   }
 </style>
 </head>
