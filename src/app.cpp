@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "clipboard.h"
 #include "i18n.h"
 #include "languages.h"
 #include "menus.h"
@@ -35,10 +36,11 @@ void App::consumeDirty(Editor& e, Doc& d) {
     }
 }
 
-void App::copyToSystem(const u32& t) {
-    std::string s = toUtf8(t);
-    if (s.size() > 100000) return;
-    writeAll("\x1b]52;c;" + base64(s) + "\x07");
+void App::copyToSystem(const u32& t) { clipboardCopy(t); }
+
+u32 App::pasteText() {
+    u32 t;
+    return clipboardPaste(t) ? t : clip;
 }
 
 // ---- Vim host ----
@@ -49,7 +51,7 @@ void AppVimHost::clipboardSet(const u32& t) {
     app->clip = t;
     app->copyToSystem(t);
 }
-u32 AppVimHost::clipboardGet() { return app->clip; }
+u32 AppVimHost::clipboardGet() { return app->pasteText(); }
 void AppVimHost::quit() { app->quit = true; }
 void AppVimHost::bufferLoaded() {
     app->doc().langManual = false;
@@ -91,7 +93,7 @@ void App::doAct(int a) {
                 ed.scrollTo(th(), tw());
                 return;
             case A_PASTE:
-                vim.pasteText(clip);
+                vim.pasteText(pasteText());
                 ed.scrollTo(th(), tw());
                 return;
             case A_CLEAR:
@@ -154,7 +156,7 @@ void App::doAct(int a) {
                 if (a == A_CUT) { ed.checkpoint(0); ed.deleteSel(); }
             }
             break;
-        case A_PASTE: ed.paste(clip); break;
+        case A_PASTE: ed.paste(pasteText()); break;
         case A_CLEAR:
             if (ed.hasSel()) { ed.checkpoint(0); ed.deleteSel(); }
             break;
@@ -250,6 +252,12 @@ void App::handleKey(const Key& k) {
             return;
     }
     if (k.code == K_F1 + 9 || k.code == K_ALTMENU) { doAct(menuLoop(0, false)); return; }
+    // Cmd shortcuts belong to the application, also in Vim mode
+    if ((k.mods & M_CMD) && (k.code == K_CHAR || k.code == K_BKSP)) {
+        if (int a = shortcut(k)) doAct(a);
+        else if (k.code == K_BKSP && !S.vim) { ed.backspaceWord(true); ed.scrollTo(th(), tw()); }
+        return;
+    }
     if (k.code == K_CHAR && (k.mods & M_ALT)) {
         for (size_t i = 0; i < MENUS.size(); i++)
             if (hotkeyOf(MENUS[i].title) == fold(k.ch)) { doAct(menuLoop(int(i), true)); return; }
@@ -271,7 +279,10 @@ void App::handleKey(const Key& k) {
             ed.moveKey(k.code, k.mods, th());
             break;
         case K_ENTER: ed.newline(); break;
-        case K_BKSP: ed.backspace(); break;
+        case K_BKSP:
+            if (k.mods & (M_CTRL | M_ALT)) ed.backspaceWord(false);
+            else ed.backspace();
+            break;
         case K_DEL: ed.delFwd(); break;
         case K_TAB: ed.tab(k.mods & M_SHIFT); break;
         case K_CHAR:

@@ -24,8 +24,9 @@ what changed.
   files at run time. Libraries are fine – prefer ones the common distributions package and
   that can be linked statically, because the release builds use `make STATIC=1` so that they
   run on every Linux distribution (see `packaging/`).
-- **External programs are optional.** Only Reformat Code calls external formatters, and
-  everything has to work without them.
+- **External programs are optional.** Only Reformat Code (external formatters) and the system
+  clipboard (`pbcopy`, `wl-copy`, `xclip`, ...) call external programs, and everything has to
+  work without them.
 - **English** for code, comments, identifiers, commit messages and documentation. Every
   user-visible string is written in US English and translated (see below).
 - **Tests with every change.** Every feature and every bug fix comes with tests in the same

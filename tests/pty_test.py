@@ -81,6 +81,9 @@ class Edit:
             env = dict(os.environ)
             env.update({"TERM": "xterm-256color", "LANG": env_lang, "LC_ALL": "", "LANGUAGE": ""})
             env.pop("COLORTERM", None)
+            # no clipboard programs (they would change the clipboard of the desktop): Edith does
+            # not use them in SSH sessions
+            env["SSH_TTY"] = "/dev/pts/0"
             for k, v in (env_extra or {}).items():
                 if v is None:
                     env.pop(k, None)
@@ -419,6 +422,38 @@ def test_cli(binary):
     check("cli: --ts-check without dropped patterns", out.strip() != "" and not bad, "\n".join(bad))
 
 
+def test_clipboard_osc52(binary, tmp):
+    """Paste asks the terminal for the clipboard (OSC 52) when there is no clipboard program."""
+    import base64
+    f = os.path.join(tmp, "clip.txt")
+    e = Edit(binary, ["--lang=en", f])
+    try:
+        e.send("x\x16", 0.3)  # Ctrl+V
+        check("osc52: query sent", "\x1b]52;c;?\x07" in e.raw, repr(e.raw[-200:]))
+        # keys typed before the answer come after the pasted text
+        answer = "\x1b]52;c;" + base64.b64encode("from terminal\r\nline 2".encode()).decode() + "\x07"
+        e.send("ab" + answer + "\x1b[?62;22c", 0.5)
+        check("osc52: pasted", "xfrom terminal" in e.screen.text() and "line 2ab" in e.screen.text(),
+              e.screen.text()[:300])
+        # a late answer after Edith gave up is not typed into the text
+        e.send(answer, 0.3)
+        check("osc52: late answer ignored", "52;c" not in e.screen.text())
+    finally:
+        e.kill()
+    e = Edit(binary, ["--lang=en", f])
+    try:
+        t0 = time.time()
+        e.send("\x16", 0.1)
+        e.send("\x1b[?62;22c", 0.6)  # only the device attributes: no OSC 52
+        check("osc52: no answer ends the wait early", time.time() - t0 < 1.0)
+        e.send("\x16", 0.3)
+        check("osc52: not asked again", e.raw.count("\x1b]52;c;?") == 1)
+        e.send("ok")
+        check("osc52: typing works afterwards", "ok" in e.screen.text())
+    finally:
+        e.kill()
+
+
 def test_binary_file(binary, tmp):
     """A binary file is shown without sending control characters to the terminal: the C1
     controls U+0080..U+009F (U+009B is CSI, U+009D is OSC) would garble the screen."""
@@ -461,7 +496,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         for t in (test_plain_english, test_plain_german, test_vim_english, test_vim_german_and_menu_toggle,
                   test_windows_and_tabs, test_reformat, test_terminals, test_escdelay, test_job_control,
-                  test_binary_file):
+                  test_binary_file, test_clipboard_osc52):
             t(binary, tmp)
         test_languages(binary)
     test_cli(binary)

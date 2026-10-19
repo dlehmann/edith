@@ -708,6 +708,7 @@ static const std::vector<u32> HELP = {
     U"KURSOR I ZAZNACZANIE",
     U"  Strzałki, Home, End, PgUp, PgDn   Ruch kursora",
     U"  Ctrl+← / Ctrl+→          Słowami",
+    U"  Alt+Backspace            Usuń słowo przed kursorem",
     U"  Ctrl+Home / Ctrl+End     Początek / koniec pliku",
     U"  Ctrl+↑ / Ctrl+↓          Przewijanie o jeden wiersz",
     U"  Shift + ruch             Zaznaczanie tekstu",
@@ -786,10 +787,37 @@ static const std::vector<u32> HELP = {
     U"  F12 włącza i wyłącza tryb Vim w każdej chwili.",
     U"",
     U"SCHOWEK",
-    U"  Skopiowany tekst trafia też do schowka systemowego przez",
-    U"  OSC 52 (jeśli terminal to obsługuje). Tekst z innych",
-    U"  programów wkleja się funkcją wklejania terminala",
-    U"  (zwykle Ctrl+Shift+V).",
+    U"  Wytnij, Kopiuj i Wklej używają schowka systemowego: w macOS",
+    U"  przez pbcopy / pbpaste, w Linuksie przez wl-clipboard, xclip",
+    U"  lub xsel, jeśli któryś jest zainstalowany. W przeciwnym",
+    U"  razie, a także przez SSH, Edith pyta terminal (OSC 52); gdy",
+    U"  nie odpowiada, Wklej używa własnego schowka Edith.",
+    U"  Skopiowany tekst trafia też do terminala przez OSC 52.",
+    U"  Działa również wklejanie terminala (zwykle Ctrl+Shift+V).",
+    U"  W trybie Vim rejestry + i * to schowek systemowy.",
 };
 
-extern const LangTable LANG_PL = {T, sizeof T / sizeof *T, &HELP};
+// Appended to the help on macOS
+static const std::vector<u32> HELP_MAC = {
+    U"",
+    U"MACOS",
+    U"  ⌥← / ⌥→                  Słowami (Ctrl+← / Ctrl+→ przełączają",
+    U"                           w macOS przestrzenie Spaces)",
+    U"  ⌘← / ⌘→                  Początek / koniec wiersza",
+    U"  ⌘↑ / ⌘↓                  Początek / koniec pliku",
+    U"  ⌥⌫ / ⌘⌫                  Usuń słowo / wszystko do początku wiersza",
+    U"  ⌘⇧Z  Ponów               ⌘G  Znajdź następny",
+    U"  ⌘⌥F  Zamień              ⌘L  Idź do wiersza",
+    U"  ⌘⇧] / ⌘⇧[                Następna / poprzednia karta",
+    U"  ⌘ działa jak Ctrl (⌘S, ⌘Z, ⌘F, ...) w terminalach, które go",
+    U"  przekazują: kitty, Ghostty, WezTerm, iTerm2. Klawisze, których",
+    U"  terminal używa sam (często ⌘C, ⌘W, ⌘T, ⌘Q), nie docierają do",
+    U"  Edith.",
+    U"",
+    U"TERMINAL.APP",
+    U"  Terminal.app zatrzymuje ⌘ dla siebie: używaj skrótów z Ctrl",
+    U"  (⌘V i tak wkleja tekst). Klawisze funkcyjne wymagają fn:",
+    U"  fn+F1 pokazuje tę pomoc, fn+F10 otwiera menu.",
+};
+
+extern const LangTable LANG_PL = {T, sizeof T / sizeof *T, &HELP, &HELP_MAC};

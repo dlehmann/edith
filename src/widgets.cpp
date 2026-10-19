@@ -6,6 +6,8 @@
 
 #include "utf8.h"
 
+std::function<u32()> g_clipboardPaste;
+
 Input::Input(int x_, int y_, int w_, u32 t) : w(w_), text(std::move(t)) {
     x = x_; y = y_; focusable = true;
     pos = int(text.size());
@@ -36,7 +38,11 @@ void Input::ins(const u32& t) {
 }
 
 int Input::key(const Key& k) {
-    if (k.code == K_CHAR && !(k.mods & (M_CTRL | M_ALT)) && k.ch >= 32) ins(u32(1, k.ch));
+    if (k.code == K_CHAR && !(k.mods & (M_CTRL | M_ALT | M_CMD)) && k.ch >= 32) ins(u32(1, k.ch));
+    else if (k.code == K_CHAR && (k.mods == M_CTRL || k.mods == M_CMD) && k.ch == 'v' && g_clipboardPaste) {
+        u32 t = g_clipboardPaste();
+        ins(t.substr(0, t.find('\n')));
+    }
     else if (k.code == K_PASTE) ins(g_paste.substr(0, g_paste.find('\n')));
     else if (k.code == K_BKSP) {
         if (fresh) { text.clear(); pos = 0; }

@@ -93,6 +93,11 @@ const std::vector<u32>* translatedHelp() {
     return t ? t->help : nullptr;
 }
 
+const std::vector<u32>* translatedHelpMac() {
+    const LangTable* t = langTable(g_uiLang);
+    return t ? t->helpMac : nullptr;
+}
+
 std::string errnoText(int e) {
     const char32_t* m = nullptr;
     switch (e) {

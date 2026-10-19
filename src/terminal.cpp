@@ -14,6 +14,7 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include "paths.h"
 #include "utf8.h"
 
 static termios g_orig, g_raw;
@@ -137,6 +138,11 @@ MouseEv g_mouse;
 u32 g_paste;
 bool g_altPending = false;  // Alt is held down without another key so far
 int g_keyTimeout = -1;
+#ifdef __APPLE__
+bool g_macKeys = true;
+#else
+bool g_macKeys = false;
+#endif
 
 // Milliseconds to wait after Esc for the rest of an escape sequence: $ESCDELAY as for ncurses
 // programs (for slow connections), 30 by default.
@@ -153,9 +159,15 @@ static int seqDelay() { return std::max(50, escDelay()); }
 
 static unsigned char g_ib[8192];
 static int g_ibPos = 0, g_ibLen = 0;
+static std::string g_back;  // bytes put back by termReadClipboard(), read before g_ib
 
 // Reads one byte. -1 = timeout, -2 = interrupted (signal)
 static int readByte(int timeoutMs) {
+    if (!g_back.empty()) {
+        int c = (unsigned char)g_back[0];
+        g_back.erase(0, 1);
+        return c;
+    }
     if (g_ibPos < g_ibLen) return g_ib[g_ibPos++];
     pollfd p{0, POLLIN, 0};
     int r = poll(&p, 1, timeoutMs);
@@ -171,13 +183,99 @@ static int readByte(int timeoutMs) {
 
 // Is more input already waiting (key repeat, fast typing)?
 bool inputPending() {
-    if (g_ibPos < g_ibLen) return true;
+    if (!g_back.empty() || g_ibPos < g_ibLen) return true;
     pollfd p{0, POLLIN, 0};
     return poll(&p, 1, 0) > 0;
 }
 
-static void unreadByte() {
-    if (g_ibPos > 0) g_ibPos--;
+// Puts a byte back: readByte() returns it next
+static void unreadByte(int c) { g_back.insert(g_back.begin(), char(c)); }
+
+// The rest of an OSC sequence after "ESC ]", up to BEL or ESC \ (the terminator is not included).
+// False when the sequence is incomplete.
+static bool readOsc(std::string& s) {
+    for (;;) {
+        int c = readByte(seqDelay());
+        if (c < 0) return false;
+        if (c == 7) return true;
+        if (c == 27) {
+            int d = readByte(seqDelay());
+            return d == '\\';
+        }
+        if (s.size() < 16 * 1024 * 1024) s += char(c);
+    }
+}
+
+static std::string unbase64(const std::string& in) {
+    std::string o;
+    unsigned v = 0;
+    int bits = 0;
+    for (char ch : in) {
+        int d = ch >= 'A' && ch <= 'Z' ? ch - 'A' : ch >= 'a' && ch <= 'z' ? ch - 'a' + 26
+              : ch >= '0' && ch <= '9' ? ch - '0' + 52 : ch == '+' ? 62 : ch == '/' ? 63 : -1;
+        if (d < 0) continue;
+        v = (v << 6) | unsigned(d);
+        bits += 6;
+        if (bits >= 8) {
+            bits -= 8;
+            o += char((v >> bits) & 255);
+        }
+    }
+    return o;
+}
+
+// The answer to the OSC 52 query: 0 = not known yet, 1 = the terminal answers, -1 = it does not
+static int g_osc52 = 0;
+
+bool termCanReadClipboard() { return g_rawOn && g_osc52 >= 0; }
+
+bool termReadClipboard(std::string& out) {
+    if (!g_rawOn || g_osc52 < 0) return false;
+    // The query, followed by a request for the device attributes (DA1), which every terminal
+    // answers: when that answer comes first, the terminal probably cannot read the clipboard.
+    // A terminal that asks the user for permission answers later, so it gets more time once
+    // it has answered before.
+    writeAll("\x1b]52;c;?\x07\x1b[c");
+    std::string keep;  // other input that arrives meanwhile
+    bool found = false;
+    auto now = [] { return Clock::now(); };
+    auto deadline = now() + std::chrono::milliseconds(g_osc52 > 0 ? 10000 : 1000);
+    for (;;) {
+        int left = int(std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now()).count());
+        if (left <= 0) break;
+        int c = readByte(left);
+        if (c == -2) continue;
+        if (c < 0) break;
+        if (c != 27) { keep += char(c); continue; }
+        int d = readByte(seqDelay());
+        if (d == ']') {
+            std::string s;
+            if (!readOsc(s)) continue;
+            if (s.compare(0, 3, "52;") != 0) continue;
+            out = unbase64(s.substr(s.rfind(';') + 1));
+            found = true;
+            break;
+        }
+        if (d == '[') {  // DA1 answer "ESC [ ? ... c" or another sequence (keep it)
+            std::string s = "\x1b[";
+            int e;
+            while ((e = readByte(seqDelay())) >= 0) {
+                s += char(e);
+                if (e >= 0x40 && e <= 0x7e) break;
+            }
+            if (s.size() > 3 && s[2] == '?' && s.back() == 'c') {
+                if (g_osc52 == 0) deadline = std::min(deadline, now() + std::chrono::milliseconds(150));
+            } else {
+                keep += s;
+            }
+            continue;
+        }
+        keep += char(27);
+        if (d >= 0) keep += char(d);
+    }
+    g_osc52 = found ? 1 : g_osc52 > 0 ? 1 : -1;
+    g_back = keep + g_back;
+    return found;
 }
 
 static Key mk(int code, int mods = 0, char32_t ch = 0) {
@@ -304,7 +402,7 @@ static Key parseCSI() {
     }
     auto F = [&](size_t i, size_t j) { return i < f.size() && j < f[i].size() ? f[i][j] : 0; };
     int a0 = F(0, 0);
-    int mods = F(1, 0) > 1 ? ((F(1, 0) - 1) & 7) : 0;  // ignore Caps Lock / Num Lock
+    int mods = F(1, 0) > 1 ? ((F(1, 0) - 1) & 15) : 0;  // ignore Hyper, Meta, Caps Lock, Num Lock
     int ev = F(1, 1) ? F(1, 1) : 1;                     // 1 = pressed, 2 = repeated, 3 = released
     if (c == 'u') {  // kitty keyboard protocol
         if (a0 == 57443 || a0 == 57449) {  // left / right Alt key
@@ -339,15 +437,16 @@ static Key parseCSI() {
         if (a0 == 27) return mk(K_ESC, mods);
         if (a0 == 127 || a0 == 8) return mk(K_BKSP, mods);
         int shifted = printable(F(0, 1)) ? F(0, 1) : 0;
-        if (!text.empty() && !(mods & M_CTRL)) {
+        if (!text.empty() && !(mods & (M_CTRL | M_CMD))) {
             // Some terminals also send the text "d" for Alt+D. Same letter as the key
             // = Alt combination; a different character (AltGr+Q = @) = typed character.
             bool altCombo = (mods & M_ALT) &&
                             (fold(text[0]) == fold(char32_t(a0)) || (shifted && text[0] == char32_t(shifted)));
             if (!altCombo) return mk(K_CHAR, 0, text[0]);
         }
-        if (!(mods & (M_CTRL | M_ALT)) && (mods & M_SHIFT) && shifted) return mk(K_CHAR, mods, char32_t(shifted));
-        if (printable(a0)) return mk(K_CHAR, mods, (mods & (M_CTRL | M_ALT)) ? fold(char32_t(a0)) : char32_t(a0));
+        if (!(mods & (M_CTRL | M_ALT | M_CMD)) && (mods & M_SHIFT) && shifted) return mk(K_CHAR, mods, char32_t(shifted));
+        if (printable(a0))
+            return mk(K_CHAR, mods, (mods & (M_CTRL | M_ALT | M_CMD)) ? fold(char32_t(a0)) : char32_t(a0));
         return mk(K_NONE);
     }
     if (ev == 3) return mk(K_NONE);
@@ -372,7 +471,7 @@ static Key parseCSI() {
         if (key == 27) return mk(K_ESC, mods);
         if (key == 127 || key == 8) return mk(K_BKSP, mods);
         if (!printable(key)) return mk(K_NONE);
-        if (!(mods & (M_CTRL | M_ALT))) return mk(K_CHAR, 0, char32_t(key));
+        if (!(mods & (M_CTRL | M_ALT | M_CMD))) return mk(K_CHAR, 0, char32_t(key));
         return mk(K_CHAR, mods & ~M_SHIFT, fold(char32_t(key)));
     }
     switch (c) {
@@ -421,7 +520,7 @@ Key readKeyRaw() {
                 if (c3 < 0) return mk(K_CHAR, M_ALT, 'o');
                 int mods = 0;
                 if (c3 >= '2' && c3 <= '9') {  // "ESC O 5 A": with modifiers (some terminals)
-                    mods = (c3 - '1') & 7;
+                    mods = (c3 - '1') & 15;
                     c3 = readByte(seqDelay());
                 }
                 switch (c3) {
@@ -438,13 +537,37 @@ Key readKeyRaw() {
                 return mk(K_NONE);
             }
             if (c2 == 27) {
-                unreadByte();
+                unreadByte(c2);
                 return mk(K_ESC);
             }
+            if (c2 == ']') {  // a late answer to termReadClipboard(): "ESC ] 52 ; ..."
+                int a = readByte(seqDelay()), b = a == '5' ? readByte(seqDelay()) : -1;
+                if (a == '5' && b == '2') {
+                    std::string s;
+                    readOsc(s);
+                    g_osc52 = 1;
+                    continue;
+                }
+                if (b >= 0) unreadByte(b);
+                if (a >= 0) unreadByte(a);
+            }
+            // Terminal.app and iTerm2 send ESC b / ESC f for Option+Left / Option+Right (with the
+            // kitty protocol Alt+B and Alt+F arrive as CSI u and still open the menus)
+            if (g_macKeys && (c2 == 'b' || c2 == 'f')) return mk(c2 == 'b' ? K_LEFT : K_RIGHT, M_CTRL);
             Key k = keyFromByte(c2, M_ALT);
             if (k.code == K_CHAR && !(k.mods & M_CTRL)) k.ch = fold(k.ch);
             return k;
         }
         return keyFromByte(c, 0);
     }
+}
+
+Key macKey(Key k) {
+    if (!g_macKeys) return k;
+    int shift = k.mods & M_SHIFT;
+    if ((k.code == K_LEFT || k.code == K_RIGHT) && (k.mods & M_CMD)) return mk(k.code == K_LEFT ? K_HOME : K_END, shift);
+    if ((k.code == K_UP || k.code == K_DOWN) && (k.mods & M_CMD))
+        return mk(k.code == K_UP ? K_HOME : K_END, shift | M_CTRL);
+    if ((k.code == K_LEFT || k.code == K_RIGHT) && (k.mods & M_ALT)) return mk(k.code, shift | M_CTRL);
+    return k;
 }

@@ -708,6 +708,7 @@ static const std::vector<u32> HELP = {
     U"CURSOR Y SELECCIÓN",
     U"  Flechas, Inicio, Fin, RePág, AvPág   Mover el cursor",
     U"  Ctrl+← / Ctrl+→          Palabra por palabra",
+    U"  Alt+Retroceso            Borrar la palabra antes del cursor",
     U"  Ctrl+Inicio / Ctrl+Fin   Principio / final del archivo",
     U"  Ctrl+↑ / Ctrl+↓          Desplazar la vista una línea",
     U"  Mayús + movimiento       Seleccionar texto",
@@ -788,10 +789,37 @@ static const std::vector<u32> HELP = {
     U"  F12 activa y desactiva el modo Vim en cualquier momento.",
     U"",
     U"PORTAPAPELES",
-    U"  El texto copiado también se envía al portapapeles del",
-    U"  sistema mediante OSC 52 (si la terminal lo admite). El",
-    U"  texto de otros programas se pega con la función de pegar",
-    U"  de la terminal (normalmente Ctrl+Mayús+V).",
+    U"  Cortar, Copiar y Pegar usan el portapapeles del sistema: en",
+    U"  macOS con pbcopy / pbpaste, en Linux con wl-clipboard, xclip",
+    U"  o xsel si alguno está instalado. Si no, y por SSH, Edith",
+    U"  pregunta a la terminal (OSC 52); si no responde, Pegar usa",
+    U"  el portapapeles propio de Edith. El texto copiado también",
+    U"  se envía a la terminal por OSC 52. La función de pegar de",
+    U"  la terminal (normalmente Ctrl+Mayús+V) también funciona. En",
+    U"  el modo Vim, los registros + y * son el portapapeles.",
 };
 
-extern const LangTable LANG_ES = {T, sizeof T / sizeof *T, &HELP};
+// Appended to the help on macOS
+static const std::vector<u32> HELP_MAC = {
+    U"",
+    U"MACOS",
+    U"  ⌥← / ⌥→                  Palabra por palabra (Ctrl+← / Ctrl+→",
+    U"                           cambian de Space en macOS)",
+    U"  ⌘← / ⌘→                  Principio / final de la línea",
+    U"  ⌘↑ / ⌘↓                  Principio / final del archivo",
+    U"  ⌥⌫ / ⌘⌫                  Borrar la palabra / hasta el inicio",
+    U"  ⌘⇧Z  Rehacer             ⌘G  Buscar siguiente",
+    U"  ⌘⌥F  Reemplazar          ⌘L  Ir a la línea",
+    U"  ⌘⇧] / ⌘⇧[                Pestaña siguiente / anterior",
+    U"  ⌘ funciona como Ctrl (⌘S, ⌘Z, ⌘F, ...) en las terminales que",
+    U"  lo transmiten: kitty, Ghostty, WezTerm, iTerm2. Las teclas",
+    U"  que usa la propia terminal (a menudo ⌘C, ⌘W, ⌘T, ⌘Q) no",
+    U"  llegan a Edith.",
+    U"",
+    U"TERMINAL.APP",
+    U"  Terminal.app se queda con ⌘: use los atajos con Ctrl (⌘V",
+    U"  sí pega texto). Las teclas de función necesitan fn: fn+F1",
+    U"  muestra esta ayuda, fn+F10 abre el menú.",
+};
+
+extern const LangTable LANG_ES = {T, sizeof T / sizeof *T, &HELP, &HELP_MAC};

@@ -71,6 +71,9 @@ struct Editor {
     // Editing commands of the keyboard (with undo steps and the editor settings)
     void typeChar(char32_t c);
     void backspace();
+    // Ctrl+Backspace / Option+Backspace: deletes the word before the cursor; toLineStart
+    // (Cmd+Backspace): everything before the cursor in its line.
+    void backspaceWord(bool toLineStart);
     void delFwd();
     void newline();
     void indent(bool out);

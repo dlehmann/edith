@@ -6,6 +6,20 @@ Write each entry on one line: the section of a version becomes the release notes
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-19
+
+### Added
+
+- Cut, Copy and Paste use the system clipboard everywhere (also Paste in dialogs and the Vim registers `+` and `*`): through `pbcopy`/`pbpaste` on macOS and `wl-clipboard`, `xclip` or `xsel` on Linux if installed, otherwise and over SSH by asking the terminal (OSC 52).
+- Mac keys on macOS: Option+←/→ move by word (also in Terminal.app), Cmd+←/→ and Cmd+↑/↓ go to the start/end of the line and file, Option+Backspace and Cmd+Backspace delete; the help has a section for macOS and Terminal.app.
+- Cmd shortcuts in terminals that pass the Command key on (kitty, Ghostty, WezTerm, iTerm2): Cmd works like Ctrl, plus Cmd+Shift+Z (redo), Cmd+G (find next), Cmd+L (go to line), Cmd+Option+F (change), Cmd+Shift+] / [ (tabs).
+- Ctrl+Backspace and Alt+Backspace delete the word before the cursor.
+
+### Fixed
+
+- Option+→ in Terminal.app no longer opens the File menu.
+- Cmd+letter no longer types the letter in terminals with the kitty keyboard protocol.
+
 ## [1.0.0] - 2026-10-18
 
 First public release.

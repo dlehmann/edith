@@ -387,6 +387,7 @@ static const std::vector<u32> HELP = {
     U"CURSOR UND MARKIEREN",
     U"  Pfeile, Pos1, Ende, Bild↑, Bild↓   Cursor bewegen",
     U"  Strg+← / Strg+→          wortweise springen",
+    U"  Alt+Rücktaste            Wort vor dem Cursor löschen",
     U"  Strg+Pos1 / Strg+Ende    Dateianfang / Dateiende",
     U"  Strg+↑ / Strg+↓          Ansicht zeilenweise rollen",
     U"  Umschalt + Bewegung      Text markieren",
@@ -466,10 +467,38 @@ static const std::vector<u32> HELP = {
     U"  F12 schaltet den Vim-Modus jederzeit ein und aus.",
     U"",
     U"ZWISCHENABLAGE",
-    U"  Kopierter Text wird zusätzlich per OSC 52 an die System-",
-    U"  Zwischenablage geschickt (falls das Terminal es kann).",
-    U"  Text aus anderen Programmen fügt man über das Terminal",
-    U"  ein (meist Strg+Umschalt+V).",
+    U"  Ausschneiden, Kopieren und Einfügen nutzen die System-",
+    U"  Zwischenablage: auf macOS über pbcopy / pbpaste, unter Linux",
+    U"  über wl-clipboard, xclip oder xsel, wenn eins davon",
+    U"  installiert ist. Sonst, und über SSH, fragt Edith das",
+    U"  Terminal (OSC 52); antwortet es nicht, fügt Edith aus der",
+    U"  eigenen Zwischenablage ein. Kopierter Text geht zusätzlich",
+    U"  per OSC 52 an das Terminal. Das Einfügen des Terminals",
+    U"  (meist Strg+Umschalt+V) geht auch. Im Vim-Modus sind die",
+    U"  Register + und * die System-Zwischenablage.",
 };
 
-extern const LangTable LANG_DE = {T, sizeof T / sizeof *T, &HELP};
+// Appended to the help on macOS
+static const std::vector<u32> HELP_MAC = {
+    U"",
+    U"MACOS",
+    U"  ⌥← / ⌥→                  wortweise springen (Strg+← / Strg+→",
+    U"                           wechseln in macOS die Spaces)",
+    U"  ⌘← / ⌘→                  Zeilenanfang / Zeilenende",
+    U"  ⌘↑ / ⌘↓                  Dateianfang / Dateiende",
+    U"  ⌥⌫ / ⌘⌫                  Wort / alles bis zum Zeilenanfang löschen",
+    U"  ⌘⇧Z  Wiederherstellen    ⌘G  Weitersuchen",
+    U"  ⌘⌥F  Ändern              ⌘L  Gehe zu Zeile",
+    U"  ⌘⇧] / ⌘⇧[                Nächster / vorheriger Tab",
+    U"  ⌘ wirkt wie Strg (⌘S, ⌘Z, ⌘F, ...) in Terminals, die es",
+    U"  weitergeben: kitty, Ghostty, WezTerm, iTerm2. Tasten, die das",
+    U"  Terminal selbst belegt (oft ⌘C, ⌘W, ⌘T, ⌘Q), kommen nicht",
+    U"  bei Edith an.",
+    U"",
+    U"TERMINAL.APP",
+    U"  Terminal.app behält ⌘ für sich: dort die Strg-Kürzel nehmen",
+    U"  (⌘V fügt trotzdem Text ein). Funktionstasten brauchen fn:",
+    U"  fn+F1 zeigt diese Hilfe, fn+F10 öffnet das Menü.",
+};
+
+extern const LangTable LANG_DE = {T, sizeof T / sizeof *T, &HELP, &HELP_MAC};

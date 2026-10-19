@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "clipboard.h"
 #include "i18n.h"
 #include "menus.h"
 #include "utf8.h"
@@ -16,7 +17,7 @@ bool App::enabled(int act) const {
         case A_UNDO: return !ed.undo.empty();
         case A_REDO: return !ed.redo.empty();
         case A_CUT: case A_COPY: case A_CLEAR: return S.vim ? vim.visualActive() : ed.hasSel();
-        case A_PASTE: return !clip.empty();
+        case A_PASTE: return !clip.empty() || clipboardReadable();
         case A_ONLY: case A_NEXTWIN: case A_PREVWIN: return windows().size() > 1;
         case A_NEXTTAB: case A_PREVTAB: return tabs.size() > 1;
     }
@@ -133,6 +134,22 @@ int App::menuLoop(int mi, bool dropped) {
 }
 
 int App::shortcut(const Key& k) const {
+    // Cmd (macOS): like Ctrl, with the Mac's own keys for Find Next, Go to Line, Redo, Change and tabs
+    if (k.code == K_CHAR && (k.mods & M_CMD)) {
+        int m = k.mods & ~M_CMD;
+        char32_t c = fold(k.ch);
+        if (m == M_SHIFT && c == 'z') return A_REDO;
+        if (m == M_ALT && c == 'f') return A_REPLACE;
+        if ((m & ~M_SHIFT) == 0 && (c == ']' || c == '}')) return A_NEXTTAB;
+        if ((m & ~M_SHIFT) == 0 && (c == '[' || c == '{')) return A_PREVTAB;
+        if (m) return A_NONE;
+        if (c == 'g') return A_FINDNEXT;
+        if (c == 'l') return A_GOTO;
+        Key ck = k;
+        ck.mods = M_CTRL;
+        ck.ch = c;
+        return shortcut(ck);
+    }
     if (k.code == K_CHAR && k.mods == M_CTRL) {
         switch (k.ch) {
             case 'n': return A_NEW;

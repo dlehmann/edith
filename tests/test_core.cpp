@@ -11,6 +11,7 @@
 #include "lexer.h"
 #include "menus.h"
 #include "paths.h"
+#include "terminal.h"
 #include "test.h"
 #include "treesitter.h"
 #include "version.h"
@@ -268,11 +269,19 @@ TEST(i18n_help_and_status_in_every_language) {
     for (auto& l : uiLanguages()) {
         g_uiLang = l.id;
         buildMenus();
+        size_t plain = helpText().size();
+        g_macKeys = true;  // with the macOS sections
         const std::vector<u32>& h = helpText();
+        CHECK(h.size() > plain + 10);
         CHECK(h.size() > 60);
-        for (auto& line : h)
+        bool mac = false;
+        for (auto& line : h) {
             if (strWidth(line) > 70)
                 testFail(__FILE__, __LINE__, std::string(l.code) + ": help line too long: " + toUtf8(line));
+            mac |= line == U"MACOS";
+        }
+        CHECK(mac);
+        g_macKeys = false;
         u32 hint = statusHint();
         CHECK(hint.compare(0, 4, U"<F1=") == 0 && hint.find('>') != u32::npos);
         CHECK(strWidth(hint) < 60);

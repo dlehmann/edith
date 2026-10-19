@@ -46,7 +46,8 @@ bool runCommand(const std::string& cmd, const std::string& cwd, const std::strin
     if (input.empty()) { close(win); win = -1; }
     bool outOpen = true, errOpen = true, timedOut = false;
     auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeoutMs);
-    while (outOpen || errOpen) {
+    // (also until the input is written: a program may close stdout first, e.g. "wl-copy >/dev/null")
+    while (outOpen || errOpen || win >= 0) {
         pollfd fds[3];
         int nf = 0, iOut = -1, iErr = -1, iIn = -1;
         if (outOpen) { iOut = nf; fds[nf++] = {pout[0], POLLIN, 0}; }

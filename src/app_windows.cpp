@@ -12,12 +12,14 @@
 #include <cmath>
 
 #include "i18n.h"
+#include "widgets.h"
 #include "languages.h"
 #include "paths.h"
 #include "utf8.h"
 
 App::App() {
     vimHost.app = this;
+    g_clipboardPaste = [this] { return pasteText(); };
     docs.push_back(std::make_unique<Doc>());
     auto t = std::make_unique<Tab>();
     t->root = std::make_unique<Node>();
@@ -28,6 +30,8 @@ App::App() {
     tabs.push_back(std::move(t));
     layoutAll();
 }
+
+App::~App() { g_clipboardPaste = nullptr; }
 
 // ---------------------------------------------------------------------------
 // Layout

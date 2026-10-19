@@ -3,6 +3,7 @@
 #include "menus.h"
 
 #include "i18n.h"
+#include "terminal.h"
 #include "utf8.h"
 
 std::vector<Menu> MENUS;
@@ -116,6 +117,7 @@ static const std::vector<u32> HELP_EN = {
     U"CURSOR AND SELECTION",
     U"  Arrows, Home, End, PgUp, PgDn   Move the cursor",
     U"  Ctrl+← / Ctrl+→          Move by word",
+    U"  Alt+Backspace            Delete the word before the cursor",
     U"  Ctrl+Home / Ctrl+End     Start / end of the file",
     U"  Ctrl+↑ / Ctrl+↓          Scroll the view by one line",
     U"  Shift + movement         Select text",
@@ -192,16 +194,48 @@ static const std::vector<u32> HELP_EN = {
     U"  and Ctrl+Q exits in every mode. F12 turns Vim mode on and off.",
     U"",
     U"CLIPBOARD",
-    U"  Copied text is also sent to the system clipboard via",
-    U"  OSC 52 (if the terminal supports it). Text from other",
-    U"  programs is pasted with the terminal's paste function",
-    U"  (usually Ctrl+Shift+V).",
+    U"  Cut, Copy and Paste use the system clipboard: on macOS",
+    U"  through pbcopy / pbpaste, on Linux through wl-clipboard,",
+    U"  xclip or xsel if one of them is installed. Otherwise, and",
+    U"  over SSH, Edith asks the terminal (OSC 52); if it does not",
+    U"  answer, Paste uses Edith's own clipboard. Copied text is",
+    U"  also sent to the terminal via OSC 52. The terminal's paste",
+    U"  function (usually Ctrl+Shift+V) works as well. In Vim mode",
+    U"  the registers + and * are the system clipboard.",
+};
+
+// Appended to the help on macOS
+static const std::vector<u32> HELP_MAC_EN = {
+    U"",
+    U"MACOS",
+    U"  ⌥← / ⌥→                  Move by word (Ctrl+← / Ctrl+→ switch",
+    U"                           Spaces in macOS)",
+    U"  ⌘← / ⌘→                  Start / end of the line",
+    U"  ⌘↑ / ⌘↓                  Start / end of the file",
+    U"  ⌥⌫ / ⌘⌫                  Delete the word / up to the line start",
+    U"  ⌘⇧Z  Redo                ⌘G  Repeat last find",
+    U"  ⌘⌥F  Change              ⌘L  Go to line",
+    U"  ⌘⇧] / ⌘⇧[                Next / previous tab",
+    U"  ⌘ works like Ctrl (⌘S, ⌘Z, ⌘F, ...) in terminals that pass",
+    U"  it on: kitty, Ghostty, WezTerm, iTerm2. Keys the terminal",
+    U"  uses itself (often ⌘C, ⌘W, ⌘T, ⌘Q) do not reach Edith.",
+    U"",
+    U"TERMINAL.APP",
+    U"  Terminal.app keeps ⌘ for itself: use the Ctrl shortcuts",
+    U"  (⌘V still pastes text). Function keys need fn: fn+F1 shows",
+    U"  this help, fn+F10 opens the menu.",
 };
 
 
 const std::vector<u32>& helpText() {
+    static std::vector<u32> help;
     const std::vector<u32>* h = translatedHelp();
-    return h ? *h : HELP_EN;
+    help = h ? *h : HELP_EN;
+    if (g_macKeys) {
+        const std::vector<u32>* m = translatedHelpMac();
+        help.insert(help.end(), (m ? *m : HELP_MAC_EN).begin(), (m ? *m : HELP_MAC_EN).end());
+    }
+    return help;
 }
 
 u32 statusHint() { return tr(U"<F1=Help>  Alt or F10 activates the menu"); }

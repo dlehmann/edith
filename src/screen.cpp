@@ -183,7 +183,7 @@ void Screen::flush() {
 Screen* g_scr = nullptr;
 
 Key getKey() {
-    Key k = readKeyRaw();
+    Key k = macKey(readKeyRaw());
     if (k.code == K_RESIZE && g_scr) g_scr->resize();
     if (k.code != K_NONE && k.code != K_ALTMENU && k.code != K_RESIZE && k.code != K_TIMEOUT) g_altPending = false;
     return k;

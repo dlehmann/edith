@@ -12,6 +12,9 @@
 #include "screen.h"
 #include "terminal.h"
 
+// The text that Ctrl+V / Cmd+V inserts into input fields (set by the application)
+extern std::function<u32()> g_clipboardPaste;
+
 // The base of all dialog elements. Coordinates are relative to the dialog. The int results
 // of key(), click() and activate() end the dialog with that value when they are not 0.
 struct Widget {

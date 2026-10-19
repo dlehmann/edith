@@ -173,6 +173,17 @@ void Editor::backspace() {
     }
 }
 
+void Editor::backspaceWord(bool toLineStart) {
+    if (hasSel()) { checkpoint(0); deleteSel(); return; }
+    anch = false;
+    int y = cy, x = cx;
+    if (toLineStart && x > 0) x = 0;
+    else wordLeft(y, x);
+    if (y == cy && x == cx) return;
+    checkpoint(0);
+    deleteRange({y, x}, {cy, cx});
+}
+
 void Editor::delFwd() {
     if (hasSel()) { checkpoint(0); deleteSel(); return; }
     anch = false;

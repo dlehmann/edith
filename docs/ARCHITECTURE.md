@@ -33,6 +33,7 @@ ncurses: `terminal.cpp` puts the terminal into raw mode and decodes the input it
 | `menus.*`, `i18n*.cpp` | menu definitions, help text, translations |
 | `languages.*`, `lexer.*`, `treesitter.*` | language detection and syntax highlighting |
 | `format.*`, `app_format.cpp`, `process.*` | Reformat Code and running external programs |
+| `clipboard.*` | the system clipboard (clipboard programs, OSC 52) |
 | `search.*` | regular expressions in the Find and Change dialogs (with `vimregex.*`) |
 | `utf8.*`, `paths.*`, `common.h` | helpers |
 

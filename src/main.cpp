@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "app.h"
+#include "clipboard.h"
 #include "i18n.h"
 #include "menus.h"
 #include "paths.h"
@@ -86,6 +87,7 @@ int main(int argc, char** argv) {
         fputs(trs("edith: a terminal is required.\n").c_str(), stderr);
         return 1;
     }
+    clipboardDetect();
     auto app = std::make_unique<App>();
     g_scr = &app->scr;
     // Use the original CGA colors when the terminal supports true color.

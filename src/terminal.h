@@ -13,7 +13,8 @@ enum KeyCode {
     K_TIMEOUT,  // no key within g_keyTimeout milliseconds
     K_F1 = 100  // F1..F12 = 100..111
 };
-enum { M_SHIFT = 1, M_ALT = 2, M_CTRL = 4 };
+// M_CMD: the Command key on macOS (Super elsewhere), only reported with the kitty keyboard protocol
+enum { M_SHIFT = 1, M_ALT = 2, M_CTRL = 4, M_CMD = 8 };
 
 // A key press: code K_CHAR with the character ch, or a special key; mods = M_* bits.
 struct Key {
@@ -31,6 +32,8 @@ extern MouseEv g_mouse;     // last mouse event (valid after K_MOUSE)
 extern u32 g_paste;         // pasted text (valid after K_PASTE)
 extern bool g_altPending;   // Alt is held down without another key so far
 extern int g_keyTimeout;    // readKeyRaw() returns K_TIMEOUT after this many ms (-1 = wait forever)
+// Mac key bindings in macKey(): true on macOS
+extern bool g_macKeys;
 
 // Writes s to stdout completely.
 void writeAll(const std::string& s);
@@ -42,3 +45,14 @@ void termRestore();
 bool inputPending();
 // Waits for the next key, mouse event, paste or resize (see g_keyTimeout).
 Key readKeyRaw();
+// With g_macKeys: the text navigation keys of macOS become the keys Edith knows. Option+Left /
+// Option+Right move by word like Ctrl+Left / Ctrl+Right, Cmd+Left / Cmd+Right become Home / End
+// and Cmd+Up / Cmd+Down Ctrl+Home / Ctrl+End. Other keys are returned unchanged. (readKeyRaw()
+// already reads ESC b / ESC f, which Terminal.app sends for Option+Left / Right, as Ctrl+Left / Right.)
+Key macKey(Key k);
+// Asks the terminal for the system clipboard (OSC 52) and waits for the answer. False when
+// stdin is no terminal, the terminal does not answer or an earlier query failed. Keys typed
+// meanwhile are kept for readKeyRaw().
+bool termReadClipboard(std::string& out);
+// Can termReadClipboard() succeed (a terminal that has not failed to answer)?
+bool termCanReadClipboard();

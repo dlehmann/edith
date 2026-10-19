@@ -23,6 +23,7 @@ struct LangTable {
     const char32_t* const (*entries)[2];
     size_t count;
     const std::vector<u32>* help;
+    const std::vector<u32>* helpMac;  // appended to the help on macOS
 };
 
 struct UiLangInfo {
@@ -49,5 +50,7 @@ const char32_t* tr(const char32_t* en);
 std::string trs(const char* en);
 // The help text in the current language (nullptr = English)
 const std::vector<u32>* translatedHelp();
+// The macOS part of the help in the UI language (nullptr for English).
+const std::vector<u32>* translatedHelpMac();
 // Localized message for an errno value.
 std::string errnoText(int e);

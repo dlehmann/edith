@@ -1,4 +1,4 @@
-.TH Edith 1 "2026-10-18" "edith 1.0.0" "User Commands"
+.TH Edith 1 "2026-10-19" "edith 1.1.0" "User Commands"
 .SH NAME
 edith \- a friendly text editor for the terminal
 .SH SYNOPSIS
@@ -57,7 +57,7 @@ Show the version.
 l l.
 Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Q	new, open, save, exit
 Ctrl+Z, Ctrl+Y	undo, redo
-Ctrl+X, Ctrl+C, Ctrl+V, Ctrl+A	cut, copy, paste, select all
+Ctrl+X, Ctrl+C, Ctrl+V, Ctrl+A	cut, copy, paste (system clipboard), select all
 Ctrl+F, F3, Ctrl+R, Ctrl+G	find, find next, replace, go to line (also with regular expressions)
 Shift+movement	select text
 Tab, Shift+Tab	indent, unindent the selected lines
@@ -69,7 +69,23 @@ F1	help
 F10, Alt	menu bar
 Alt+letter	open a menu, choose a menu entry
 h j k l	arrow keys in menus and dialogs (not in input fields)
+Alt+Backspace	delete the word before the cursor
 .TE
+.PP
+On macOS also: Option+Left/Right (word), Cmd+Left/Right (start/end of the line),
+Cmd+Up/Down (start/end of the file), Option+Backspace, Cmd+Backspace (delete the word,
+everything before the cursor in the line). In terminals that pass the Command key on, Cmd
+works like Ctrl, and Cmd+Shift+Z redoes, Cmd+G finds the next match, Cmd+L goes to a line,
+Cmd+Option+F replaces, Cmd+Shift+] and Cmd+Shift+[ switch to the next and previous tab.
+.SH CLIPBOARD
+Cut, copy and paste use the system clipboard: on macOS through
+.BR pbcopy " and " pbpaste ,
+on Linux through
+.BR wl\-copy " and " wl\-paste ,
+.BR xclip " or " xsel
+when one of them is installed. Without them, and over SSH, paste asks the terminal for the
+clipboard (OSC 52) and otherwise uses Edith's own clipboard. Copied text is also sent to the
+terminal with OSC 52.
 .SH ENVIRONMENT
 .TP
 .BR LANGUAGE ", " LC_ALL ", " LC_MESSAGES ", " LANG

@@ -17,8 +17,11 @@ the grammars and queries compiled into the binary (no data files at run time).
 
 **External programs are optional:** Edit > Reformat Code (`src/format.cpp`) calls an installed
 standard formatter (clang-format, ruff, gofmt, prettier, ...) if there is one. Everything must
-keep working without them (built-in JSON formatter, re-indenting by the syntax tree), and no
-other feature may depend on external programs.
+keep working without them (built-in JSON formatter, re-indenting by the syntax tree). The
+system clipboard (`src/clipboard.cpp`) uses `pbcopy`/`pbpaste` on macOS and `wl-copy`/`wl-paste`,
+`xclip` or `xsel` on Linux when one is installed and Edith does not run over SSH; without them
+it asks the terminal (OSC 52) and falls back to Edith's own clipboard. No other feature may
+depend on external programs.
 
 ## Language rules
 
@@ -86,6 +89,7 @@ make test                 # unit tests (build/edith-tests) and pty end-to-end te
 | `src/vimregex.*` | regular expressions with Vim pattern syntax (multi-line) |
 | `src/format.*` | Reformat Code: formatter table, `~/.config/edith/formatters`, JSON formatter |
 | `src/search.*` | regular expressions in the Find and Change dialogs (Vim's very magic syntax) |
+| `src/clipboard.*` | the system clipboard: clipboard programs, OSC 52 (the query itself is in `terminal.cpp`) |
 | `src/process.*` | running external programs without the terminal (formatters, Vim's `:!`, `:r !`, `:w !`, filters) |
 | `src/version.h` | the version number (`--version`, About dialog); also in `docs/edith.1`, `CHANGELOG.md` and `packaging/arch/PKGBUILD` (a test compares them) |
 | `src/app_format.cpp` | Reformat Code in the application, re-indenting by the syntax tree (`TsDoc::indents`) |
@@ -155,7 +159,16 @@ make test                 # unit tests (build/edith-tests) and pty end-to-end te
   nothing recorded when nothing changed).
 - Vim messages are UI strings: wrap them in `tr()` and translate them (keep the `Exxx:` codes).
   Exception: Vim's easter eggs (`:help!`, `:help 42`, `:Ni!`, `:smile`, ...) stay in English.
-- In Vim mode Ctrl+S, Ctrl+Q, the function keys and Alt+menu letters stay with the application.
+- In Vim mode Ctrl+S, Ctrl+Q, the function keys, Alt+menu letters and all Cmd keys stay with
+  the application.
+
+## macOS
+
+- `g_macKeys` (true on macOS) turns on the Mac's keys in `macKey()` (`src/terminal.cpp`):
+  Option+←/→ move by word, Cmd+←/→ and Cmd+↑/↓ become Home/End and Ctrl+Home/End, ESC b / ESC f
+  (Terminal.app's Option+←/→) move by word. The Cmd shortcuts (`M_CMD`, only with the kitty
+  keyboard protocol) are in `App::shortcut()` on every platform. The help shows the sections
+  `HELP_MAC` only when `g_macKeys` is set; tests set it to check them.
 
 ## Testing
 

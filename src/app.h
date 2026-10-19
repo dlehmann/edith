@@ -110,6 +110,7 @@ struct App {
     u32 findText, replText;
 
     App();
+    ~App();
     App(const App&) = delete;
     App& operator=(const App&) = delete;
     bool findCase = false, findWhole = false, findRegex = false;
@@ -233,6 +234,7 @@ struct App {
 
     // Main loop and actions (app.cpp)
     void copyToSystem(const u32& t);
+    u32 pasteText();           // the system clipboard if it can be read, else App::clip
     void doAct(int a);
     void handleKey(const Key& k);
     void run();

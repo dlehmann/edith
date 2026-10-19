@@ -708,6 +708,7 @@ static const std::vector<u32> HELP = {
     U"KURZOR ÉS KIJELÖLÉS",
     U"  Nyilak, Home, End, PgUp, PgDn   A kurzor mozgatása",
     U"  Ctrl+← / Ctrl+→          Szavanként",
+    U"  Alt+Backspace            A kurzor előtti szó törlése",
     U"  Ctrl+Home / Ctrl+End     A fájl eleje / vége",
     U"  Ctrl+↑ / Ctrl+↓          Görgetés soronként",
     U"  Shift + mozgás           Szöveg kijelölése",
@@ -786,10 +787,38 @@ static const std::vector<u32> HELP = {
     U"  Az F12 bármikor be- és kikapcsolja a Vim módot.",
     U"",
     U"VÁGÓLAP",
-    U"  A másolt szöveg OSC 52-n keresztül a rendszer vágólapjára",
-    U"  is kerül (ha a terminál támogatja). Más programok szövegét",
-    U"  a terminál beillesztés funkciójával lehet beilleszteni",
-    U"  (általában Ctrl+Shift+V).",
+    U"  A Kivágás, Másolás és Beillesztés a rendszer vágólapját",
+    U"  használja: macOS-en a pbcopy / pbpaste, Linuxon a",
+    U"  wl-clipboard, az xclip vagy az xsel segítségével, ha valamelyik",
+    U"  telepítve van. Különben, és SSH-n át, az Edith a terminált",
+    U"  kérdezi (OSC 52); ha az nem válaszol, a Beillesztés az Edith",
+    U"  saját vágólapját használja. A másolt szöveg OSC 52-n át a",
+    U"  terminálhoz is eljut. A terminál beillesztés funkciója",
+    U"  (általában Ctrl+Shift+V) is működik. Vim módban a + és a *",
+    U"  regiszter a rendszer vágólapja.",
 };
 
-extern const LangTable LANG_HU = {T, sizeof T / sizeof *T, &HELP};
+// Appended to the help on macOS
+static const std::vector<u32> HELP_MAC = {
+    U"",
+    U"MACOS",
+    U"  ⌥← / ⌥→                  Szavanként (a Ctrl+← / Ctrl+→ macOS-en",
+    U"                           a Space-eket váltja)",
+    U"  ⌘← / ⌘→                  A sor eleje / vége",
+    U"  ⌘↑ / ⌘↓                  A fájl eleje / vége",
+    U"  ⌥⌫ / ⌘⌫                  A szó / a sor elejéig tartó rész törlése",
+    U"  ⌘⇧Z  Ismétlés            ⌘G  Következő keresése",
+    U"  ⌘⌥F  Csere               ⌘L  Ugrás sorra",
+    U"  ⌘⇧] / ⌘⇧[                Következő / előző lap",
+    U"  A ⌘ úgy működik, mint a Ctrl (⌘S, ⌘Z, ⌘F, ...) azokban a",
+    U"  terminálokban, amelyek továbbítják: kitty, Ghostty, WezTerm,",
+    U"  iTerm2. A terminál saját billentyűi (gyakran ⌘C, ⌘W, ⌘T,",
+    U"  ⌘Q) nem jutnak el az Edithig.",
+    U"",
+    U"TERMINAL.APP",
+    U"  A Terminal.app megtartja magának a ⌘-ot: ott a Ctrl",
+    U"  billentyűparancsokat használd (a ⌘V így is beilleszt). A",
+    U"  funkcióbillentyűkhöz fn kell: fn+F1 ez a súgó, fn+F10 a menü.",
+};
+
+extern const LangTable LANG_HU = {T, sizeof T / sizeof *T, &HELP, &HELP_MAC};

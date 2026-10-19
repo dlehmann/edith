@@ -17,7 +17,8 @@ Spanish, Italian, Hungarian and Polish.
 ## Features
 
 - **Easy to use:** menus (Alt or F10), dialogs, the usual shortcuts (Ctrl+S, Ctrl+Z, Ctrl+F,
-  ...), selecting with Shift and the mouse, the system clipboard (OSC 52), bracketed paste.
+  ...), selecting with Shift and the mouse, the system clipboard (also over SSH), bracketed
+  paste; on macOS also the Mac's keys (Cmd+S, Cmd+Z, Option+←/→, Cmd+←/→, ...).
 - **Syntax highlighting** with [tree-sitter](https://tree-sitter.github.io) and the queries of
   nvim-treesitter, including embedded languages (HTML in PHP, JavaScript/CSS in HTML, code
   blocks in Markdown, regular expressions, ...). Languages without a grammar use a built-in
@@ -209,9 +210,18 @@ fish or any other shell, and runs shell commands (formatters, Vim's `:!`) with `
 - The terminal has to use **UTF-8** (all current terminals do by default).
 - Colors: 16 colors everywhere; true color when `COLORTERM` says so (or `EDITH_COLORS=24`). On
   the Linux console bright colors are shown as bold.
-- On macOS, let the Option key work as Alt for the menu shortcuts: Terminal.app > Settings >
-  Profiles > Keyboard > "Use Option as Meta key", in iTerm2 Profiles > Keys > Left Option key
-  "Esc+". F10 opens the menus anyway (on laptops with Fn+F10).
+- On macOS, Option+←/→ move by word, Cmd+←/→ go to the start / end of the line, Cmd+↑/↓ to the
+  start / end of the file, Option+Backspace and Cmd+Backspace delete. Cmd works like Ctrl (Cmd+S,
+  Cmd+Z, Cmd+F, Cmd+Shift+Z redo, Cmd+G find next, Cmd+L go to line, Cmd+Option+F change) in
+  terminals that pass it on (kitty, Ghostty, WezTerm, iTerm2); Terminal.app keeps Cmd for
+  itself, so the Ctrl shortcuts are used there. F10 opens the menus (on laptops with Fn+F10).
+  For the menu shortcuts with Option, let it work as Alt (Terminal.app > Settings > Profiles >
+  Keyboard > "Use Option as Meta key", in iTerm2 Profiles > Keys > Left Option key "Esc+"); then
+  Option+B and Option+F move by word like Option+←/→, which these terminals send the same way.
+- **Clipboard:** Cut, Copy and Paste use the system clipboard – on macOS through `pbcopy` /
+  `pbpaste`, on Linux through `wl-copy` / `wl-paste` (wl-clipboard), `xclip` or `xsel` if one is
+  installed. Without them, and over SSH, Paste asks the terminal (OSC 52; for example kitty, Ghostty
+  and iTerm2 answer, some after asking you) and otherwise uses Edith's own clipboard. Copied text always goes to the terminal through OSC 52 as well.
 - Alt alone opens the menu only in terminals with the kitty keyboard protocol (kitty, foot,
   WezTerm, Ghostty, recent Alacritty); F10 and Alt+letter work everywhere.
 - Over slow connections set `ESCDELAY=100` (milliseconds) if keys such as the arrows arrive

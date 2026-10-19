@@ -708,6 +708,7 @@ static const std::vector<u32> HELP = {
     U"SIQWI' WIV JE",
     U"  ghoch leQmey, Home, End, PgUp, PgDn   SIqwI' vIHmoH",
     U"  Ctrl+← / Ctrl+→          mu' veb / vorgh",
+    U"  Alt+Backspace            SIqwI' tlhop mu' Qaw'",
     U"  Ctrl+Home / Ctrl+End     ghItlh tagh / Dor",
     U"  Ctrl+↑ / Ctrl+↓          wa' tlhegh vIHmoH",
     U"  Shift + vIH              ghItlh wIv",
@@ -777,9 +778,33 @@ static const std::vector<u32> HELP = {
     U"  F12 Vim lo' chu'moH 'ej chu'Ha'moH.",
     U"",
     U"QENGHOM",
-    U"  ghItlh velqa' OSC 52 lo'taHvIS De'wI' qengHom Daq je",
-    U"  ngeHlu' (terminal laHchugh). latlh ghun ghItlh: terminal",
-    U"  lan ra' yIlo' (motlh: Ctrl+Shift+V).",
+    U"  pe', velqa' chenmoH, lan: De'wI' qengHom lo'lu'. macOS: pbcopy",
+    U"  / pbpaste. Linux: wl-clipboard, xclip pagh xsel (jomlu'chugh).",
+    U"  pagh, SSH lo'taHvIS je: terminal tlhob Edith (OSC 52); jangbe'",
+    U"  terminalchugh, Edith qengHom lo'lu'. ghItlh velqa' OSC 52",
+    U"  lo'taHvIS terminal Daq ngeHlu' je. terminal lan ra' je lo'",
+    U"  (motlh: Ctrl+Shift+V). Vim Daq: + * je De'wI' qengHom.",
 };
 
-extern const LangTable LANG_TLH = {T, sizeof T / sizeof *T, &HELP};
+// Appended to the help on macOS
+static const std::vector<u32> HELP_MAC = {
+    U"",
+    U"MACOS",
+    U"  ⌥← / ⌥→                  mu' veb / vorgh (macOS: Ctrl+← / Ctrl+→",
+    U"                           Spaces choH)",
+    U"  ⌘← / ⌘→                  tlhegh tagh / Dor",
+    U"  ⌘↑ / ⌘↓                  ghItlh tagh / Dor",
+    U"  ⌥⌫ / ⌘⌫                  mu' Qaw' / tlhegh tagh Qaw'",
+    U"  ⌘⇧Z  ghoS                ⌘G  latlh nej",
+    U"  ⌘⌥F  tam                 ⌘L  tlhegh Daq jaH",
+    U"  ⌘⇧] / ⌘⇧[                tab veb / vorgh",
+    U"  ⌘ Ctrl rur (⌘S, ⌘Z, ⌘F, ...) terminalmey ngeHbogh: kitty,",
+    U"  Ghostty, WezTerm, iTerm2. terminal leQmey lo'bogh (motlh ⌘C,",
+    U"  ⌘W, ⌘T, ⌘Q) Edith pawbe'.",
+    U"",
+    U"TERMINAL.APP",
+    U"  Terminal.app ⌘ ghaj: Ctrl leQmey yIlo' (⌘V ghItlh lan je).",
+    U"  fn poQ F leQmey: fn+F1 QaH, fn+F10 HIDjolev poSmoH.",
+};
+
+extern const LangTable LANG_TLH = {T, sizeof T / sizeof *T, &HELP, &HELP_MAC};
