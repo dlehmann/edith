@@ -230,5 +230,10 @@ Every new version (Semantic Versioning) is released with a version tag; only tag
    compares the known places with `src/version.h`.
 2. `CHANGELOG.md`: move the entries under "Unreleased" to a new section `## [1.2.3] - DATE`
    (it becomes the release notes) and leave an empty "Unreleased" section above it.
-3. `make test` must pass. Commit, then tag and push both:
+3. Screenshots and demo video: if the user interface changed visibly since they were made
+   (menus, dialogs, the tab line, colors, the version in the About dialog, ...), make them
+   again with `tools/screenshots.py` (`docs/screenshots/*.png`) and `tools/demo.py`
+   (`docs/screenshots/demo.mp4`) and check them; the README and the website show them
+   (`pages.yml` publishes the website when they change on `master`).
+4. `make test` must pass. Commit, then tag and push both:
    `git tag v1.2.3 && git push origin master v1.2.3`.

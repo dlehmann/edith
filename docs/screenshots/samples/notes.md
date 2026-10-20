@@ -16,4 +16,4 @@ def bump(version: str) -> str:
 git tag v1.0.1 && git push origin v1.0.1
 ```
 
-> The release workflow creates a draft. Publish it by hand.
+> The release workflow builds and publishes the release.
