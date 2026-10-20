@@ -6,6 +6,8 @@ Write each entry on one line: the section of a version becomes the release notes
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-20
+
 ### Added
 
 - Every tab has a × on the right of its title, also when only one tab is open; a mouse click on it closes the tab (asking for modified buffers), on the last tab it exits like F4.
