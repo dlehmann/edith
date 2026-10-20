@@ -117,10 +117,15 @@ void App::handleMouse() {
         if (mi >= 0) doAct(menuLoop(mi, true));
         return;
     }
-    if (m.y == 1 && tabs.size() > 1) {
+    if (m.y == 1) {
         auto lay = tabLayout();
         for (size_t t = 0; t < lay.size(); t++)
-            if (m.x >= lay[t].first && m.x < lay[t].first + lay[t].second) { gotoTab(int(t)); break; }
+            if (m.x >= lay[t].first && m.x < lay[t].first + lay[t].second) {
+                if (m.x != lay[t].first + lay[t].second - 2) gotoTab(int(t));
+                else if (tabs.size() == 1) doAct(A_CLOSETAB);  // the × of the last tab exits
+                else closeTab(int(t), false);  // the ×
+                break;
+            }
         return;
     }
     if (m.y == scr.h - 1) {

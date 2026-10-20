@@ -160,9 +160,9 @@ together with the screenshots whenever one of them changes on `master`.
 2. Commit, then tag and push: `git tag v1.2.3 && git push origin master v1.2.3`.
 3. The release workflow (`.github/workflows/release.yml`) builds and tests a static binary on
    Debian bookworm, the Arch package with makepkg on Arch Linux, the macOS binary on Apple
-   Silicon (`.github/workflows/macos.yml`), and creates a **draft** release with the source
-   tarball, the static binary, the `.deb`, the Arch package, the macOS archive, the AppImage,
-   the `PKGBUILD` and `SHA256SUMS`. Check it and publish it. The `.deb` and the Arch
+   Silicon (`.github/workflows/macos.yml`), and publishes the release right away with the
+   source tarball, the static binary, the `.deb`, the Arch package, the macOS archive, the
+   AppImage, the `PKGBUILD` and `SHA256SUMS`. Only tags of the form `v1.2.3` start it. The `.deb` and the Arch
    package are also attached without the version in the name (`edith_amd64.deb`,
    `edith-editor-x86_64.pkg.tar.zst`, `edith-macos-arm64.tar.gz`), so that the `releases/latest/download/` links in the
    README always get the newest release.

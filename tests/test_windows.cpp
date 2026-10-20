@@ -242,10 +242,52 @@ TEST(tab_new_switch_close) {
     auto lay = t.a().tabLayout();
     t.keys(click(lay[1].first + 1, 1));
     CHECK_EQ(t.a().curTab, 1);
-    t.keys(alt('w') + alt('l') + RIGHT + "\r");  // Close Tab: modified, "No"
+    t.keys(alt('f') + alt('l') + RIGHT + "\r");  // Close Tab: modified, "No"
     CHECK_EQ(ntab(t), 1);
     CHECK_EQ(t.text(), "first");
     CHECK(t.row(1).find("1 Untitled") == std::string::npos);  // one tab: the file name only
+}
+
+TEST(tab_close_by_click_on_x) {
+    AppT t("first");
+    t.keys(ctrl('t') + "second" + ctrl('t'));
+    CHECK_EQ(ntab(t), 3);
+    auto lay = t.a().tabLayout();
+    const Screen& s = t.a().scr;
+    for (auto& [x, len] : lay) CHECK(s.buf[size_t(s.w + x + len - 2)].ch == U'×');
+    t.keys(click(lay[2].first + lay[2].second - 2, 1));  // unmodified: closes at once
+    CHECK_EQ(ntab(t), 2);
+    lay = t.a().tabLayout();
+    t.keys(click(lay[1].first + lay[1].second - 2, 1) + RIGHT + RIGHT + "\r");  // modified: Cancel
+    CHECK_EQ(ntab(t), 2);
+    CHECK_EQ(t.a().curTab, 1);
+    t.keys(CPGUP);
+    t.keys(click(lay[1].first + lay[1].second - 2, 1) + RIGHT + "\r");  // an inactive tab, "No"
+    CHECK_EQ(ntab(t), 1);
+    CHECK_EQ(t.text(), "first");
+}
+
+TEST(tab_close_by_click_on_x_last_tab) {
+    AppT t("");
+    t.keys("text");
+    auto lay = t.a().tabLayout();
+    CHECK_EQ(lay.size(), size_t(1));
+    const Screen& s = t.a().scr;
+    int x = lay[0].first + lay[0].second - 2;
+    CHECK(s.buf[size_t(s.w + x)].ch == U'×');
+    CHECK(t.row(1).find("Untitled") != std::string::npos);
+    t.keys(click(x, 1) + RIGHT + RIGHT + "\r");  // modified: Cancel
+    CHECK(!t.a().quit);
+    t.keys(click(x, 1) + RIGHT + "\r");  // "No": the last tab exits like F4
+    CHECK(t.a().quit);
+}
+
+TEST(tab_close_in_file_menu) {
+    bool inFile = false, inWindow = false;
+    for (auto& it : MENUS[0].items) inFile |= it.act == A_CLOSETAB;
+    for (auto& it : MENUS[4].items) inWindow |= it.act == A_CLOSETAB;
+    CHECK(inFile);
+    CHECK(!inWindow);
 }
 
 TEST(tab_active_window_per_tab) {

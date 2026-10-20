@@ -18,6 +18,7 @@ void buildMenus() {
             {tr(U"&Save"), tr(U"Ctrl+S"), A_SAVE, tr(U"Saves the current file")},
             {tr(U"Save &As..."), U"", A_SAVEAS, tr(U"Saves the file under a new name")},
             SEP,
+            {tr(U"C&lose Tab"), U"F4", A_CLOSETAB, tr(U"Closes the current tab and its windows")},
             {tr(U"E&xit"), tr(U"Ctrl+Q"), A_EXIT, tr(U"Exits the editor")},
         }},
         {tr(U"&Edit"), {
@@ -65,7 +66,6 @@ void buildMenus() {
             {tr(U"&Previous Window"), tr(U"Shift+F6"), A_PREVWIN, tr(U"Moves to the previous window")},
             SEP,
             {tr(U"New &Tab"), tr(U"Ctrl+T"), A_NEWTAB, tr(U"Opens a new tab with an empty file")},
-            {tr(U"C&lose Tab"), U"F4", A_CLOSETAB, tr(U"Closes the current tab and its windows")},
             {tr(U"Ne&xt Tab"), tr(U"Ctrl+PgDn"), A_NEXTTAB, tr(U"Moves to the next tab")},
             {tr(U"Previou&s Tab"), tr(U"Ctrl+PgUp"), A_PREVTAB, tr(U"Moves to the previous tab")},
         }},
@@ -179,6 +179,7 @@ static const std::vector<u32> HELP_EN = {
     U"  the border between windows to resize it, click a tab in",
     U"  the top line to switch to it. edith a b opens tabs,",
     U"  edith -o a b / edith -O a b split windows.",
+    U"  A click on the × of a tab closes it.",
     U"  In Vim mode: Ctrl+W s v w h j k l c o q + - < > = _ | T,",
     U"  gt gT and :split :vsplit :new :close :only :resize",
     U"  :tabnew :tabclose :tabnext :tabprevious :tabmove :tabs.",

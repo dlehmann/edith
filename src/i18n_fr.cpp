@@ -773,6 +773,7 @@ static const std::vector<u32> HELP = {
     U"  bordure entre fenêtres change la taille ; un clic sur un",
     U"  onglet en haut y passe. edith a b ouvre des onglets,",
     U"  edith -o a b / edith -O a b divise la fenêtre.",
+    U"  Un clic sur le × d'un onglet le ferme.",
     U"  En mode Vim : Ctrl+W s v w h j k l c o q + - < > = _ | T,",
     U"  gt gT et :split :vsplit :new :close :only :resize",
     U"  :tabnew :tabclose :tabnext :tabprevious :tabmove :tabs.",

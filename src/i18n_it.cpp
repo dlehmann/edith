@@ -773,6 +773,7 @@ static const std::vector<u32> HELP = {
     U"  o il bordo tra le finestre ne cambia la dimensione; un clic",
     U"  su una scheda in alto passa a essa. edith a b apre schede,",
     U"  edith -o a b / edith -O a b divide la finestra.",
+    U"  Un clic sulla × di una scheda la chiude.",
     U"  In modalità Vim: Ctrl+W s v w h j k l c o q + - < > = _ | T,",
     U"  gt gT e :split :vsplit :new :close :only :resize",
     U"  :tabnew :tabclose :tabnext :tabprevious :tabmove :tabs.",

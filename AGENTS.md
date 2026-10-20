@@ -101,7 +101,7 @@ make test                 # unit tests (build/edith-tests) and pty end-to-end te
 | `docs/screenshots/` | screenshots for the README and the website, made by `tools/screenshots.py` from `samples/`; the demo video of the website (`demo.mp4`) by `tools/demo.py` |
 | `site/` | the website (GitHub Pages, published by `.github/workflows/pages.yml` with the screenshots) |
 | `packaging/` | `.deb`, `PKGBUILD`, AppImage, desktop entry and icon, `build-release.sh` |
-| `.github/workflows/release.yml` | for a `v*` tag: build without warnings, `make test`, `--ts-check` on Linux, macOS and Arch Linux, then the release files in a draft release |
+| `.github/workflows/release.yml` | for a version tag (`v1.2.3`): build without warnings, `make test`, `--ts-check` on Linux, macOS and Arch Linux, then publishes the release with the release files |
 | `.github/workflows/ci.yml` | the same checks on Linux, started by hand (Actions > CI > Run workflow) |
 
 ## Conventions
@@ -211,3 +211,24 @@ Before finishing a change, check at least:
 - a clean, warning-free `make clean && make`,
 - an entry in `CHANGELOG.md` under "Unreleased" for user-visible changes (one line per entry,
   no line breaks: the section becomes the GitHub release notes).
+
+## Releasing a new version
+
+Every new version (Semantic Versioning) is released with a version tag; only tags of the form
+`v1.2.3` start `.github/workflows/release.yml`, which publishes the release right away.
+
+1. Set the version number everywhere it appears:
+   - `src/version.h` (`EDITH_VERSION`: `--version` and Help > About take it from there),
+   - `docs/edith.1` (header line, also its date),
+   - `packaging/arch/PKGBUILD` (`pkgver`, `pkgrel=1`),
+   - `site/index.html` (the download button, the download links of the static binary and the
+     AppImage, the status line at the bottom),
+   - `README.md` and the help texts if they name a version or versioned file names.
+
+   Then search for the old number to find places not listed here (and add them to this list):
+   `git grep -nF 1.2.2 -- ':!third_party' ':!CHANGELOG.md'`. The test `version_is_consistent`
+   compares the known places with `src/version.h`.
+2. `CHANGELOG.md`: move the entries under "Unreleased" to a new section `## [1.2.3] - DATE`
+   (it becomes the release notes) and leave an empty "Unreleased" section above it.
+3. `make test` must pass. Commit, then tag and push both:
+   `git tag v1.2.3 && git push origin master v1.2.3`.

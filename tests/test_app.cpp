@@ -472,7 +472,7 @@ TEST(app_vim_toggle_f12) {
         return found;
     };
     CHECK(menuShows(3, "Vim Mode", "F12"));
-    CHECK(menuShows(4, "Close Tab", "F4"));
+    CHECK(menuShows(0, "Close Tab", "F4"));
 }
 
 TEST(app_vim_status_line_german) {

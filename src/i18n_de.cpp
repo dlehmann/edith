@@ -451,6 +451,7 @@ static const std::vector<u32> HELP = {
     U"  zeile oder der Trennlinie ändert die Größe, ein Klick auf",
     U"  einen Tab oben wechselt dorthin. edith a b öffnet Tabs,",
     U"  edith -o a b / edith -O a b teilt das Fenster.",
+    U"  Ein Klick auf das × eines Tabs schließt ihn.",
     U"  Im Vim-Modus: Strg+W s v w h j k l c o q + - < > = _ | T,",
     U"  gt gT und :split :vsplit :new :close :only :resize",
     U"  :tabnew :tabclose :tabnext :tabprevious :tabmove :tabs.",

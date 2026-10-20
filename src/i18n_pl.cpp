@@ -771,6 +771,7 @@ static const std::vector<u32> HELP = {
     U"  granicy między oknami zmienia rozmiar; kliknięcie karty u",
     U"  góry przełącza na nią. edith a b otwiera karty,",
     U"  edith -o a b / edith -O a b dzieli okno.",
+    U"  Kliknięcie × karty zamyka ją.",
     U"  W trybie Vim: Ctrl+W s v w h j k l c o q + - < > = _ | T,",
     U"  gt gT oraz :split :vsplit :new :close :only :resize",
     U"  :tabnew :tabclose :tabnext :tabprevious :tabmove :tabs.",

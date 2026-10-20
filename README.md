@@ -140,9 +140,10 @@ Find and Change can search for regular expressions (check box "Regular Expressio
 
 ## Windows and tabs
 
-The Window menu splits the editor horizontally or vertically, closes windows and opens, closes
-and switches tabs. A click activates a window, dragging a status line or the border between
-windows resizes them, and the tabs are shown in the top line. In Vim mode the same works with
+The Window menu splits the editor horizontally or vertically, closes windows and opens and
+switches tabs; File > Close Tab closes a tab. A click activates a window, dragging a status line
+or the border between windows resizes them, and the tabs are shown in the top line, each with a
+× that closes it. In Vim mode the same works with
 `Ctrl-W s v n c q o w W h j k l t b p + - _ | < > = T`, `gt`, `gT` and `:split :vsplit :new
 :vnew :close :only :resize :vertical :wincmd :tabnew :tabedit :tabclose :tabonly :tabnext
 :tabprevious :tabfirst :tablast :tabmove :tabs`, `:wa :qa :wqa :xa`.

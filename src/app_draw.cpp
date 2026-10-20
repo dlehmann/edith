@@ -223,13 +223,18 @@ void App::drawSeparators(Node* n) {
 std::vector<std::pair<int, int>> App::tabLayout() const {
     std::vector<std::pair<int, int>> r;
     int n = int(tabs.size());
+    if (n == 1) {  // one tab: its file name in the middle of the line
+        int len = std::min(strWidth(titleOf(ed)) + 4, scr.w - 4);
+        r.push_back({(scr.w - len) / 2, len});
+        return r;
+    }
     int avail = scr.w - 4;
     int each = std::max(5, n ? avail / n : avail);
     int x = 2;
     for (int t = 0; t < n; t++) {
         Win* w = tabs[size_t(t)]->cur;
         const Editor& e = w->doc == win->doc ? ed : w->doc->store;
-        int len = strWidth(fmtU("%d ", t + 1) + titleOf(e)) + 2;
+        int len = strWidth(fmtU("%d ", t + 1) + titleOf(e)) + 4;  // " 1 name × "
         len = std::min(len, each);
         r.push_back({x, len});
         x += len + 1;
@@ -249,8 +254,10 @@ void App::drawTabLine() {
         u32 label = U" " + fmtU("%d ", int(t) + 1) + titleOf(e) + U" ";
         int x = lay[t].first, len = lay[t].second;
         if (x + len > W - 2) break;
-        scr.fill(x, 1, len, int(t) == curTab ? Col::TITLE : Col::FRAME);
-        scr.text(x, 1, label, int(t) == curTab ? Col::TITLE : Col::FRAME, len);
+        Attr a = int(t) == curTab ? Col::TITLE : Col::FRAME;
+        scr.fill(x, 1, len, a);
+        scr.text(x, 1, label, a, len - 2);
+        scr.put(x + len - 2, 1, U'×', a);  // a click closes the tab
     }
 }
 
@@ -263,9 +270,10 @@ void App::drawEditor() {
         scr.put(0, 1, U'┌', Col::FRAME);
         scr.fill(1, 1, W - 2, Col::FRAME, U'─');
         scr.put(W - 1, 1, U'┐', Col::FRAME);
-        u32 title = U" " + titleOf(ed) + U" ";
-        int tl = std::min(strWidth(title), W - 4);
-        scr.text((W - tl) / 2, 1, title, Col::TITLE, W - 4);
+        auto [x, len] = tabLayout()[0];
+        scr.text(x, 1, U" " + titleOf(ed) + U" ", Col::TITLE, len - 2);
+        scr.put(x + len - 2, 1, U'×', Col::TITLE);
+        scr.put(x + len - 1, 1, U' ', Col::TITLE);
     }
     int ay = 2, ah = std::max(1, H - 4);
     for (int r = 0; r < ah; r++) scr.put(0, ay + r, U'│', Col::FRAME);
