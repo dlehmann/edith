@@ -8,7 +8,7 @@
 # The release workflow attaches a copy of this file with the download URL and checksum filled in.
 
 pkgname=edith-editor
-pkgver=1.2.0
+pkgver=1.3.0
 pkgrel=1
 pkgdesc="Friendly text editor for the terminal with menus, mouse, tree-sitter highlighting and a Vim mode"
 arch=('x86_64' 'aarch64')

@@ -6,6 +6,12 @@ Write each entry on one line: the section of a version becomes the release notes
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-28
+
+### Added
+
+- Hex mode (Options > Hex Mode, `edith --hex`): shows and edits the bytes of a file in hexadecimal and as characters, with overwrite and insert, undo, the clipboard, Find for text or hex bytes and Go to Offset; binary files are opened in hex mode automatically, and the menu entries that only apply to text are grayed out.
+
 ## [1.2.0] - 2026-10-20
 
 ### Added
