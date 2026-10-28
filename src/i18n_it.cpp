@@ -250,8 +250,8 @@ static const char32_t* const T[][2] = {
      U"Trova l'occorrenza successiva"},
     {U"Finds text and replaces it",
      U"Trova un testo e lo sostituisce"},
-    {U"Jumps to a line number",
-     U"Salta a un numero di riga"},
+    {U"Jumps to a line number (in hex mode: to an offset)",
+     U"Salta a un numero di riga (in modalità esadecimale: a un offset)"},
     {U"Switches between insert and overwrite mode",
      U"Passa tra inserimento e sovrascrittura"},
     {U"New lines keep the indentation of the previous line",
@@ -404,7 +404,7 @@ static const char32_t* const T[][2] = {
      U"Errore di lettura."},
     {U"Write error.",
      U"Errore di scrittura."},
-    {U"Usage: %s [-n|-r] [-o|-O|-p] [--vim] [--lang=CODE] [file ...]\n"
+    {U"Usage: %s [-n|-r] [-o|-O|-p] [--vim] [--hex] [--lang=CODE] [file ...]\n"
      U"\n"
      U"Text editor for the terminal.\n"
      U"Alt or F10 opens the menu, F1 shows the help.\n"
@@ -414,13 +414,15 @@ static const char32_t* const T[][2] = {
      U"  -o / -O       several files in windows above each other / side by side\n"
      U"  -p            several files in tabs (the default)\n"
      U"  --vim         start with the Vim key bindings (Options > Vim Mode)\n"
+     U"  --hex         show the files as bytes in hex mode (Options > Hex Mode);\n"
+     U"                binary files are always opened in hex mode\n"
      U"  --lang=CODE   user interface language: %s\n"
      U"                (default: from the locale)\n"
      U"  --version     show the version\n"
      U"  --ts-check    load and check all tree-sitter grammars\n"
      U"\n"
      U"The environment variable EDITH_COLORS=16 forces 16 colors instead of true color.\n",
-     U"Uso: %s [-n|-r] [-o|-O|-p] [--vim] [--lang=CODE] [file ...]\n"
+     U"Uso: %s [-n|-r] [-o|-O|-p] [--vim] [--hex] [--lang=CODE] [file ...]\n"
      U"\n"
      U"Editor di testo per il terminale.\n"
      U"Alt o F10 apre il menu, F1 mostra l'aiuto.\n"
@@ -430,6 +432,8 @@ static const char32_t* const T[][2] = {
      U"  -o / -O       più file in finestre una sopra l'altra / affiancate\n"
      U"  -p            più file in schede (predefinito)\n"
      U"  --vim         avvia con i tasti di Vim (Opzioni > Modalità Vim)\n"
+     U"  --hex         mostra i file come byte (Opzioni > Modalità esadecimale);\n"
+     U"                i file binari si aprono sempre in modalità esadecimale\n"
      U"  --lang=CODE   lingua dell'interfaccia: %s\n"
      U"                (predefinita: dalla localizzazione)\n"
      U"  --version     mostra la versione\n"
@@ -678,6 +682,22 @@ static const char32_t* const T[][2] = {
      U"E939: Serve un numero positivo"},
     {U"E944: Reverse range in character class",
      U"E944: Intervallo invertito nella classe di caratteri"},
+
+    // Hex mode
+    {U"He&x Mode",
+     U"Modalità esa&decimale"},
+    {U"Shows and edits the bytes of the file in hexadecimal",
+     U"Mostra e modifica i byte del file in esadecimale"},
+    {U"Hex Bytes (e.g. 4F 0A)",
+     U"Byte esadecimali (es. 4F 0A)"},
+    {U"Please enter bytes as hex digits, e.g. 4F 0A.",
+     U"Inserire i byte come cifre esadecimali, es. 4F 0A."},
+    {U"Go to Offset",
+     U"Vai all'offset"},
+    {U"Offset (hex):",
+     U"Offset (esadecimale):"},
+    {U"Please enter a hexadecimal number.",
+     U"Inserire un numero esadecimale."},
 };
 
 // The help text (Help > Keyboard and Mouse)
@@ -777,6 +797,15 @@ static const std::vector<u32> HELP = {
     U"  In modalità Vim: Ctrl+W s v w h j k l c o q + - < > = _ | T,",
     U"  gt gT e :split :vsplit :new :close :only :resize",
     U"  :tabnew :tabclose :tabnext :tabprevious :tabmove :tabs.",
+    U"",
+    U"MODALITÀ ESADECIMALE",
+    U"  Opzioni > Modalità esadecimale (o edith --hex) mostra i byte",
+    U"  del file in esadecimale e come caratteri; i file binari si",
+    U"  aprono automaticamente in questa modalità. Le cifre",
+    U"  esadecimali cambiano i byte, Tab passa ai caratteri. Ins",
+    U"  alterna sovrascrittura e inserimento, Canc e Backspace",
+    U"  cancellano byte, Ctrl+F cerca testo o byte esadecimali,",
+    U"  Ctrl+G salta a un offset (esadecimale).",
     U"",
     U"MODALITÀ VIM",
     U"  Opzioni > Modalità Vim (o edith --vim) attiva i tasti di Vim:",

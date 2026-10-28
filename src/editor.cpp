@@ -436,51 +436,121 @@ int Editor::replaceAll(const u32& t, const u32& r, bool cs, bool whole) {
     return cnt;
 }
 
-bool Editor::load(const std::string& path, std::string& err) {
+bool readFile(const std::string& path, std::string& data, std::string& err) {
     struct stat st;
     if (stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) { err = trs("That is a directory."); return false; }
     FILE* f = fopen(path.c_str(), "rb");
     if (!f) { err = errnoText(errno); return false; }
-    std::string data;
+    data.clear();
     char buf[65536];
     size_t r;
     while ((r = fread(buf, 1, sizeof buf, f)) > 0) data.append(buf, r);
     bool bad = ferror(f);
     fclose(f);
     if (bad) { err = trs("Read error."); return false; }
+    return true;
+}
 
+bool Editor::load(const std::string& path, std::string& err) {
+    std::string data;
+    if (!readFile(path, data, err)) return false;
     Editor e;
-    if (data.size() >= 3 && data.compare(0, 3, "\xEF\xBB\xBF") == 0) {
-        e.bom = true;
-        data.erase(0, 3);
-    }
+    e.setData(std::move(data));
+    e.filename = path;
+    *this = std::move(e);
+    return true;
+}
+
+void Editor::setData(std::string data) {
+    bom = data.size() >= 3 && data.compare(0, 3, "\xEF\xBB\xBF") == 0;
+    if (bom) data.erase(0, 3);
     u32 text;
-    if (!fromUtf8(data, text)) {
+    latin1 = !fromUtf8(data, text);
+    if (latin1) {
         text.clear();
         for (unsigned char c : data) text += c;
-        e.latin1 = true;
     }
-    e.crlf = text.find(U"\r\n") != u32::npos;
-    e.lines.clear();
+    crlf = text.find(U"\r\n") != u32::npos;
+    lines.clear();
     size_t s = 0;
     for (;;) {
         size_t q = text.find('\n', s);
         u32 l = text.substr(s, q == u32::npos ? u32::npos : q - s);
-        if (e.crlf && !l.empty() && l.back() == '\r') l.pop_back();
-        e.lines.push_back(std::move(l));
+        if (crlf && !l.empty() && l.back() == '\r') l.pop_back();
+        lines.push_back(std::move(l));
         if (q == u32::npos) break;
         s = q + 1;
     }
-    e.filename = path;
-    *this = std::move(e);
+    cy = cx = top = left = 0;
+    anch = false;
+    touch(0);
+}
+
+std::string Editor::encode(bool& converted) const {
+    converted = false;
+    if (latin1)
+        for (auto& l : lines)
+            for (char32_t c : l)
+                if (c > 0xFF) converted = true;
+    bool l1 = latin1 && !converted;
+    std::string out;
+    if (bom) out = "\xEF\xBB\xBF";
+    for (size_t i = 0; i < lines.size(); i++) {
+        if (i) out += crlf ? "\r\n" : "\n";
+        if (l1) for (char32_t c : lines[i]) out += char(c);
+        else for (char32_t c : lines[i]) putUtf8(out, c);
+    }
+    return out;
+}
+
+// The number of bytes of a character in encode()'s output
+static size_t byteLen(char32_t c, bool l1) {
+    if (l1) return 1;
+    return c < 0x80 ? 1 : c < 0x800 ? 2 : c < 0x10000 ? 3 : 4;
+}
+
+static bool encodesLatin1(const Editor& e) {
+    if (!e.latin1) return false;
+    for (auto& l : e.lines)
+        for (char32_t c : l)
+            if (c > 0xFF) return false;
     return true;
+}
+
+size_t Editor::byteOffset(Pos p) const {
+    bool l1 = encodesLatin1(*this);
+    size_t off = bom ? 3 : 0, eol = crlf ? 2 : 1;
+    p.y = std::clamp(p.y, 0, n() - 1);
+    for (int y = 0; y < p.y; y++) {
+        for (char32_t c : lines[size_t(y)]) off += byteLen(c, l1);
+        off += eol;
+    }
+    const u32& l = lines[size_t(p.y)];
+    for (int x = 0; x < p.x && x < int(l.size()); x++) off += byteLen(l[size_t(x)], l1);
+    return off;
+}
+
+Pos Editor::posOfByte(size_t off) const {
+    bool l1 = encodesLatin1(*this);
+    size_t at = bom ? 3 : 0, eol = crlf ? 2 : 1;
+    for (int y = 0; y < n(); y++) {
+        const u32& l = lines[size_t(y)];
+        for (size_t x = 0; x < l.size(); x++) {
+            size_t len = byteLen(l[x], l1);
+            if (off < at + len) return {y, int(x)};
+            at += len;
+        }
+        if (off < at + eol || y + 1 == n()) return {y, int(l.size())};
+        at += eol;
+    }
+    return {n() - 1, int(lines.back().size())};
 }
 
 // Writes data to path. An existing file is replaced by a temporary file written next to it,
 // so that a failed write (a full disk) leaves the old file intact. Where replacing would change
 // the file's identity it is written in place: for hard links and for files of another owner.
 // Symbolic links are followed. The permissions of the file are kept.
-static bool writeFile(const std::string& path, const std::string& data, std::string& err) {
+bool writeFile(const std::string& path, const std::string& data, std::string& err) {
     std::string target = path;
     char* real = realpath(path.c_str(), nullptr);  // follows symbolic links
     if (real) {
@@ -525,21 +595,9 @@ static bool writeFile(const std::string& path, const std::string& data, std::str
 }
 
 bool Editor::save(const std::string& path, std::string& err, bool& converted) {
-    converted = false;
-    if (latin1) {
-        for (auto& l : lines)
-            for (char32_t c : l)
-                if (c > 0xFF) converted = true;
-        if (converted) latin1 = false;
-    }
-    std::string out;
-    if (bom) out = "\xEF\xBB\xBF";
-    for (size_t i = 0; i < lines.size(); i++) {
-        if (i) out += crlf ? "\r\n" : "\n";
-        if (latin1) for (char32_t c : lines[i]) out += char(c);
-        else for (char32_t c : lines[i]) putUtf8(out, c);
-    }
+    std::string out = encode(converted);
     if (!writeFile(path, out, err)) return false;
+    if (converted) latin1 = false;
     filename = path;
     modified = false;
     return true;

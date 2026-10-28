@@ -17,6 +17,11 @@ struct Settings {
 };
 extern Settings S;  // the global settings
 
+// Reads a whole file; err = message on failure.
+bool readFile(const std::string& path, std::string& data, std::string& err);
+// Writes a whole file safely (see editor.cpp); err = message on failure.
+bool writeFile(const std::string& path, const std::string& data, std::string& err);
+
 // A position in the text: line y, index x into the line (code points, not columns).
 struct Pos {
     int y = 0, x = 0;
@@ -96,6 +101,13 @@ struct Editor {
     int replaceAll(const u32& t, const u32& r, bool cs, bool whole);
     // Loads a file (UTF-8, or Latin-1 when it is not valid UTF-8); err = message on failure.
     bool load(const std::string& path, std::string& err);
+    // Sets the text and the file format from the content of a file (no undo step)
+    void setData(std::string data);
+    // The content of the file as save() writes it. converted = a Latin-1 text needs UTF-8.
+    std::string encode(bool& converted) const;
+    // The offset of a position in encode()'s bytes, and the position of a byte offset
+    size_t byteOffset(Pos p) const;
+    Pos posOfByte(size_t off) const;
     // Saves in the file's format. converted = a Latin-1 file had to be saved as UTF-8.
     // An existing file is replaced only after the new text was written completely.
     bool save(const std::string& path, std::string& err, bool& converted);

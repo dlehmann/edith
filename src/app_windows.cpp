@@ -176,6 +176,11 @@ void App::saveView() {
     v.anchor = ed.anchor;
     v.wantCol = ed.wantCol;
     v.curswant = vim.curswant;
+    if (const HexBuf* h = win->doc->hex.get()) {
+        v.hexPos = h->pos;
+        v.hexTop = h->top;
+        v.hexChars = h->chars;
+    }
 }
 
 static void loadView(Editor& ed, Vim& vim, const View& v) {
@@ -213,7 +218,15 @@ void App::activate(Win* w) {
     win = w;
     vim.swapWinState(w->vim);
     loadView(ed, vim, w->v);
-    if (S.vim) vim.afterExternal();
+    if (HexBuf* h = w->doc->hex.get()) {
+        h->pos = std::min(w->v.hexPos, h->size());
+        h->top = w->v.hexTop;
+        h->chars = w->v.hexChars;
+        h->anch = false;
+        h->nib = 0;
+        h->lastKind = 0;
+    }
+    if (S.vim && !hexMode()) vim.afterExternal();
     layoutAll();
 }
 
@@ -588,7 +601,7 @@ bool AppVimHost::layout(const std::string& cmd, int count, const u32& arg, bool 
             }
             std::string er;
             bool conv;
-            if (!e.save(e.filename, er, conv)) {
+            if (!a.saveDoc(d.get(), e.filename, er, conv)) {
                 err = tr(U"E212: Can't open file for writing: ") + U(er);
                 return false;
             }

@@ -22,6 +22,10 @@ void App::vscrollTo(int y) {
     if (tl <= 1) return;
     int nl = ed.n();
     int pos = std::clamp(y - (areaY() + 1), 0, tl - 1);
+    if (hexMode()) {
+        hexVscroll(pos, tl);
+        return;
+    }
     ed.top = std::max(0, nl - th()) * pos / (tl - 1);
     ed.anch = false;
     ed.cy = std::clamp(ed.cy, ed.top, std::min(nl - 1, ed.top + th() - 1));
@@ -70,6 +74,10 @@ void App::handleMouse() {
     const MouseEv& m = g_mouse;
     if (m.wheel) {
         if (Win* w = winAt(windows(), m.x, m.y)) activate(w);
+        if (hexMode()) {
+            hexWheel(3 * m.wheel);
+            return;
+        }
         int nl = ed.n();
         ed.top = std::clamp(ed.top + 3 * m.wheel, 0, std::max(0, nl - th()));
         return;
@@ -78,7 +86,9 @@ void App::handleMouse() {
     if (m.motion) {
         if (m.btn != 0) return;
         int nl = ed.n();
-        if (dragging == 1) {
+        if (dragging == 1 && hexMode()) {
+            hexMouseAt(m.x, m.y, true);
+        } else if (dragging == 1) {
             int row = m.y - ty(), col = m.x - tx();
             if (row < 0) { ed.top = std::max(0, ed.top - 1); row = 0; }
             else if (row >= th()) { ed.top = std::min(ed.top + 1, std::max(0, nl - th())); row = th() - 1; }
@@ -149,6 +159,18 @@ void App::handleMouse() {
         Win* w = winAt(windows(), m.x, m.y);
         if (w && w != win) activate(w);
         if (w && m.y == w->sy) return;  // the status line of a window
+    }
+    if (hexMode()) {
+        int ay = areaY(), ah = areaH(scr);
+        if (m.y >= ty() && m.y < ty() + th() && m.x >= tx() && m.x < tx() + tw()) {
+            hexMouseAt(m.x, m.y, (m.mods & M_SHIFT) != 0);
+            dragging = 1;
+        } else if (m.x == scr.w - 1 && m.y >= ay && m.y < ay + ah) {
+            if (m.y == ay) hexWheel(-1);
+            else if (m.y == ay + ah - 1) hexWheel(1);
+            else { vscrollTo(m.y); dragging = 2; }
+        }
+        return;
     }
     int nl = ed.n();
     if (gutter() && m.y >= ty() && m.y < ty() + th() && m.x >= win->x && m.x < tx()) {

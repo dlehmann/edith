@@ -10,6 +10,7 @@
 //   app_mouse.cpp    mouse handling and scroll bars
 //   app_windows.cpp  buffers, split windows and tabs
 //   app_format.cpp   Reformat Code and re-indenting
+//   app_hex.cpp      hex mode
 
 #include <algorithm>
 #include <cstdint>
@@ -20,6 +21,7 @@
 
 #include "common.h"
 #include "editor.h"
+#include "hex.h"
 #include "screen.h"
 #include "terminal.h"
 #include "treesitter.h"
@@ -60,6 +62,7 @@ struct Doc {
     TsDoc tsd;                 // tree-sitter parser for this buffer
     std::vector<uint8_t> tsVis;
     VimBufState vim;           // marks etc. while the buffer is not active
+    std::unique_ptr<HexBuf> hex;  // the bytes in hex mode, null in text mode
 };
 
 // What a window shows of its buffer
@@ -68,6 +71,8 @@ struct View {
     bool anch = false;
     Pos anchor;
     int wantCol = -1, curswant = 0;
+    size_t hexPos = 0, hexTop = 0;  // hex mode
+    bool hexChars = false;
 };
 
 struct Win {
@@ -164,7 +169,7 @@ struct App {
     // Geometry of the text area of the active window
     int ty() const { return win->y; }
     // Width of the line number column (digits + one space), 0 when hidden.
-    int gutter() const { return gutterFor(ed); }
+    int gutter() const { return hexMode() ? 0 : gutterFor(ed); }
     int gutterFor(const Editor& e) const;
     int tx() const { return win->x + gutter(); }
     int th() const { return std::max(1, win->h); }
@@ -180,6 +185,7 @@ struct App {
     u32 titleOf(const Editor& e) const;  // file name and " *" when modified
     void drawEditor();
     void drawWindow(Win& w, bool active);
+    void drawWinStatus(Win& w, bool active);
     void drawSeparators(Node* n);
     void drawTabLine();
     std::vector<std::pair<int, int>> tabLayout() const;  // x and width of each tab label
@@ -231,6 +237,32 @@ struct App {
     bool reindentLines(int y1, int y2, std::vector<int>& widths);  // by the syntax tree or braces
     std::vector<u32> builtinFormat(u32& msg, bool& reindented);
     void reformatCode();
+
+    // Hex mode (app_hex.cpp)
+    bool hexStart = false;     // edith --hex: the files of the command line are opened in hex mode
+    u32 hexFindText;
+    bool hexFindHex = true;
+    bool hexMode() const { return win->doc->hex != nullptr; }
+    void setHex(bool on);
+    void hexFromFile(std::string data);  // the current buffer shows these bytes of its file
+    void hexIfBinary();                  // after loading a file: hex mode for a binary file
+    HexLayout hexLayout() const;
+    void hexSync();                      // a change of the bytes marks the buffer as modified
+    void hexScroll(bool center = false);
+    void drawHexWindow(Win& w, bool active);
+    u32 hexStatus() const;
+    bool hexCursor();
+    void hexKey(const Key& k);
+    void hexPaste(const u32& t);
+    bool hexAct(int a);
+    void hexMouseAt(int x, int y, bool select);
+    void hexWheel(int d);
+    void hexVscroll(int pos, int len);
+    void hexFindDialog();
+    bool hexFindNext();
+    void hexGotoDialog();
+    // Saves a buffer (its bytes in hex mode); conv as for Editor::save
+    bool saveDoc(Doc* d, const std::string& path, std::string& err, bool& conv);
 
     // Main loop and actions (app.cpp)
     void copyToSystem(const u32& t);

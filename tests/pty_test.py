@@ -399,7 +399,7 @@ def test_cli(binary):
     env = {k: v for k, v in os.environ.items() if k not in ("LANG", "LC_ALL", "LC_MESSAGES", "LANGUAGE")}
     env["LANG"] = "C.UTF-8"
     out = subprocess.run([binary, "--help", "--lang=en"], capture_output=True, text=True, env=env).stdout
-    check("cli: help en", "--vim" in out and "Usage:" in out)
+    check("cli: help en", "--vim" in out and "--hex" in out and "Usage:" in out)
     out = subprocess.run([binary, "--lang=de", "--help"], capture_output=True, text=True).stdout
     check("cli: help de", "--vim" in out and "Aufruf:" in out)
     r = subprocess.run([binary, "--lang=xx"], capture_output=True, text=True, env=env)
@@ -466,6 +466,29 @@ def test_binary_file(binary, tmp):
         bad = sorted({hex(ord(c)) for c in e.raw if 0x80 <= ord(c) < 0xA0 or (ord(c) < 32 and c not in "\x1b\r\n\x07")})
         check("binary: no control characters written", not bad, bad)
         check("binary: screen intact", "File" in e.screen.text() and "data.bin" in e.screen.text(), e.screen.text())
+        check("binary: opened in hex mode", "00 01 1B 7F 80" in e.screen.text() and "│ Hex │" in e.screen.text(),
+              e.screen.text())
+    finally:
+        e.kill()
+
+
+def test_hex_option(binary, tmp):
+    """edith --hex shows a text file as bytes; Options > Hex Mode switches back to the text."""
+    f = os.path.join(tmp, "hex.txt")
+    with open(f, "w") as out:
+        out.write("Hallo\n")
+    e = Edit(binary, ["--hex", "--lang=de", f])
+    try:
+        check("hex: bytes shown", "00000000  48 61 6C 6C 6F 0A" in e.screen.text(), e.screen.text())
+        check("hex: status line", "│ Hex │ ÜB" in e.screen.text(), e.screen.text())
+        e.send("4a")
+        e.send("\x13")  # Ctrl+S
+        with open(f, "rb") as inp:
+            check("hex: saved", inp.read() == b"Jallo\n")
+        e.send("\x1bo")
+        e.send("\x1bh")  # Optionen > Hex-Modus
+        check("hex: back to the text", "Jallo" in e.screen.text() and "│ Hex │" not in e.screen.text(),
+              e.screen.text())
     finally:
         e.kill()
 
@@ -496,7 +519,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         for t in (test_plain_english, test_plain_german, test_vim_english, test_vim_german_and_menu_toggle,
                   test_windows_and_tabs, test_reformat, test_terminals, test_escdelay, test_job_control,
-                  test_binary_file, test_clipboard_osc52):
+                  test_binary_file, test_hex_option, test_clipboard_osc52):
             t(binary, tmp)
         test_languages(binary)
     test_cli(binary)

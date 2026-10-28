@@ -250,8 +250,8 @@ static const char32_t* const T[][2] = {
      U"veb tu'"},
     {U"Finds text and replaces it",
      U"ghItlh tu' 'ej tam"},
-    {U"Jumps to a line number",
-     U"tlhegh mI' Daq Sup"},
+    {U"Jumps to a line number (in hex mode: to an offset)",
+     U"tlhegh mI' Daq Sup (wa'maHjav lo'Daq: Daq mI' Daq Sup)"},
     {U"Switches between insert and overwrite mode",
      U"lan ngaQ ghItlh je choH"},
     {U"New lines keep the indentation of the previous line",
@@ -404,7 +404,7 @@ static const char32_t* const T[][2] = {
      U"laD Qagh."},
     {U"Write error.",
      U"ghItlh Qagh."},
-    {U"Usage: %s [-n|-r] [-o|-O|-p] [--vim] [--lang=CODE] [file ...]\n"
+    {U"Usage: %s [-n|-r] [-o|-O|-p] [--vim] [--hex] [--lang=CODE] [file ...]\n"
      U"\n"
      U"Text editor for the terminal.\n"
      U"Alt or F10 opens the menu, F1 shows the help.\n"
@@ -414,13 +414,15 @@ static const char32_t* const T[][2] = {
      U"  -o / -O       several files in windows above each other / side by side\n"
      U"  -p            several files in tabs (the default)\n"
      U"  --vim         start with the Vim key bindings (Options > Vim Mode)\n"
+     U"  --hex         show the files as bytes in hex mode (Options > Hex Mode);\n"
+     U"                binary files are always opened in hex mode\n"
      U"  --lang=CODE   user interface language: %s\n"
      U"                (default: from the locale)\n"
      U"  --version     show the version\n"
      U"  --ts-check    load and check all tree-sitter grammars\n"
      U"\n"
      U"The environment variable EDITH_COLORS=16 forces 16 colors instead of true color.\n",
-     U"lo': %s [-n|-r] [-o|-O|-p] [--vim] [--lang=CODE] [ghItlh ...]\n"
+     U"lo': %s [-n|-r] [-o|-O|-p] [--vim] [--hex] [--lang=CODE] [ghItlh ...]\n"
      U"\n"
      U"terminal ghItlh choHwI'.\n"
      U"Alt pagh F10: wIv tlhegh poSmoH, F1: QaH 'agh.\n"
@@ -430,6 +432,8 @@ static const char32_t* const T[][2] = {
      U"  -o / -O       ghItlhmey law' Qorwaghmey Daq (bIng / poS)\n"
      U"  -p            ghItlhmey law' tabmey Daq (motlh)\n"
      U"  --vim         Vim leQmey lo'taHvIS tagh (wIv > Vim lo')\n"
+     U"  --hex         ghItlhmey wa'maHjav lo'Daq cha' (wIv > wa'maHjav lo')\n"
+     U"                ghItlhmey Qatlh reH wa'maHjav lo'Daq poSmoH\n"
      U"  --lang=CODE   Hol: %s\n"
      U"                (motlh: Daq Hol)\n"
      U"  --version     mI' yIcha'\n"
@@ -678,6 +682,22 @@ static const char32_t* const T[][2] = {
      U"E939: mI' Dub poQlu'"},
     {U"E944: Reverse range in character class",
      U"E944: Degh Segh Daq chuq lugh"},
+
+    // Hex mode
+    {U"He&x Mode",
+     U"wa'maH&jav lo'"},
+    {U"Shows and edits the bytes of the file in hexadecimal",
+     U"ghItlh mI'mey wa'maHjav mI'meyvaD cha' 'ej choH"},
+    {U"Hex Bytes (e.g. 4F 0A)",
+     U"wa'maHjav mI'mey (4F 0A rur)"},
+    {U"Please enter bytes as hex digits, e.g. 4F 0A.",
+     U"wa'maHjav mI'mey yIghItlh, 4F 0A rur."},
+    {U"Go to Offset",
+     U"Daq mI' Daq jaH"},
+    {U"Offset (hex):",
+     U"Daq mI' (wa'maHjav):"},
+    {U"Please enter a hexadecimal number.",
+     U"wa'maHjav mI' yIghItlh."},
 };
 
 // The help text (Help > Keyboard and Mouse)
@@ -768,6 +788,14 @@ static const std::vector<u32> HELP = {
     U"  Vim Daq: Ctrl+W s v w h j k l c o q + - < > = _ | T,",
     U"  gt gT, :split :vsplit :new :close :only :resize",
     U"  :tabnew :tabclose :tabnext :tabprevious :tabmove :tabs je.",
+    U"",
+    U"WA'MAHJAV LO'",
+    U"  wIv > wa'maHjav lo' (pagh edith --hex): ghItlh mI'mey",
+    U"  wa'maHjav mI'meyvaD ngutlhmeyvaD je cha'. ghItlhmey Qatlh",
+    U"  reH wa'maHjav lo'Daq poSmoH. wa'maHjav mI'mey mI'mey choH,",
+    U"  Tab ngutlhmey Daq jaH. Ins: ngaQ ghItlh / lan. Del",
+    U"  Backspace je mI'mey Qaw'. Ctrl+F: ghItlh pagh mI'mey nej.",
+    U"  Ctrl+G: Daq mI' Daq Sup (wa'maHjav).",
     U"",
     U"VIM LO'",
     U"  wIv > Vim lo' (pagh edith --vim): Vim leQmey chu'. motlh,",

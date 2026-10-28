@@ -47,7 +47,8 @@ enum Act {
     A_CLOSETAB,
     A_NEXTTAB,
     A_PREVTAB,
-    A_FORMAT
+    A_FORMAT,
+    A_HEX
 };
 
 // One menu entry. '&' marks the hotkey letter; label == nullptr is a separator.

@@ -56,6 +56,7 @@ void AppVimHost::quit() { app->quit = true; }
 void AppVimHost::bufferLoaded() {
     app->doc().langManual = false;
     app->autoLang();
+    app->hexIfBinary();
 }
 void AppVimHost::showLines(const u32& title, const std::vector<u32>& lines) { app->linesDialog(title, lines); }
 int AppVimHost::confirm(const u32& prompt) {
@@ -84,8 +85,15 @@ bool AppVimHost::setFiletype(const std::string& name) {
 void AppVimHost::setSyntax(bool on) { S.syntax = on; }
 
 void App::doAct(int a) {
+    if (hexMode()) {
+        if (!enabled(a)) return;  // grayed out in hex mode (also their shortcuts)
+        if (hexAct(a)) {
+            hexScroll();
+            return;
+        }
+    }
     Pos sa, sb;
-    if (S.vim && a != A_VIM) {
+    if (S.vim && a != A_VIM && !hexMode()) {
         // Edit menu actions on a Visual mode selection
         switch (a) {
             case A_CUT: case A_COPY:
@@ -107,6 +115,7 @@ void App::doAct(int a) {
             if (confirmDiscard()) {
                 if (shown(&doc(), win)) useNewDoc();
                 ed = Editor();
+                doc().hex.reset();
                 doc().langManual = false;
                 setLang(-1);
                 vim.reset();
@@ -193,6 +202,7 @@ void App::doAct(int a) {
             break;
         }
         case A_REDRAW: scr.force = true; break;
+        case A_HEX: setHex(!hexMode()); break;
         case A_VIM: {
             // a selection stays selected: in Vim mode as Visual mode
             Pos anchor = ed.anchor, cur{ed.cy, ed.cx};
@@ -210,7 +220,7 @@ void App::doAct(int a) {
             break;
         }
     }
-    if (S.vim && a != A_VIM) {
+    if (S.vim && a != A_VIM && !hexMode()) {
         // A found match is selected by Edith; in Vim mode the cursor goes to its start instead
         if ((a == A_FIND || a == A_FINDNEXT || a == A_REPLACE || a == A_GOTO) && ed.anch) {
             ed.cy = ed.anchor.y;
@@ -219,7 +229,9 @@ void App::doAct(int a) {
         }
         vim.afterExternal();
     }
-    if (!quit) ed.scrollTo(th(), tw());
+    if (quit) return;
+    if (hexMode()) hexScroll();
+    else ed.scrollTo(th(), tw());
 }
 
 void App::handleKey(const Key& k) {
@@ -233,19 +245,24 @@ void App::handleKey(const Key& k) {
     switch (k.code) {
         case K_MOUSE:
             handleMouse();
-            if (S.vim) {
+            if (S.vim && !hexMode()) {
                 // like Vim: scrolling with the wheel keeps the cursor in the view
                 if (g_mouse.wheel)
                     ed.cy = std::clamp(ed.cy, ed.top, std::max(ed.top, std::min(ed.n() - 1, ed.top + th() - 1)));
                 vim.afterExternal();
             }
             return;
-        case K_RESIZE: layoutAll(); ed.scrollTo(th(), tw()); return;
+        case K_RESIZE:
+            layoutAll();
+            if (hexMode()) hexScroll();
+            else ed.scrollTo(th(), tw());
+            return;
         case K_NONE: return;
         case K_TIMEOUT:
-            if (S.vim) { vim.timeout(); ed.scrollTo(th(), tw()); }
+            if (S.vim && !hexMode()) { vim.timeout(); ed.scrollTo(th(), tw()); }
             return;
         case K_PASTE:
+            if (hexMode()) { hexPaste(g_paste); return; }
             if (S.vim) vim.pasteText(g_paste);
             else ed.paste(g_paste);
             ed.scrollTo(th(), tw());
@@ -255,17 +272,21 @@ void App::handleKey(const Key& k) {
     // Cmd shortcuts belong to the application, also in Vim mode
     if ((k.mods & M_CMD) && (k.code == K_CHAR || k.code == K_BKSP)) {
         if (int a = shortcut(k)) doAct(a);
-        else if (k.code == K_BKSP && !S.vim) { ed.backspaceWord(true); ed.scrollTo(th(), tw()); }
+        else if (k.code == K_BKSP && !S.vim && !hexMode()) { ed.backspaceWord(true); ed.scrollTo(th(), tw()); }
         return;
     }
     if (k.code == K_CHAR && (k.mods & M_ALT)) {
         for (size_t i = 0; i < MENUS.size(); i++)
             if (hotkeyOf(MENUS[i].title) == fold(k.ch)) { doAct(menuLoop(int(i), true)); return; }
         // Esc quickly followed by a key arrives as Alt+key: in Vim mode it is Esc and the key
-        if (S.vim && !(k.mods & M_CTRL)) {
+        if (S.vim && !hexMode() && !(k.mods & M_CTRL)) {
             vim.feed(u32(1, VK::ESC) + u32(1, k.ch));
             ed.scrollTo(th(), tw());
         }
+        return;
+    }
+    if (hexMode()) {
+        hexKey(k);
         return;
     }
     if (S.vim && vim.handleKey(k)) {

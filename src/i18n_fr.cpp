@@ -250,8 +250,8 @@ static const char32_t* const T[][2] = {
      U"Trouve l'occurrence suivante"},
     {U"Finds text and replaces it",
      U"Trouve un texte et le remplace"},
-    {U"Jumps to a line number",
-     U"Va à un numéro de ligne"},
+    {U"Jumps to a line number (in hex mode: to an offset)",
+     U"Va à un numéro de ligne (en mode hexadécimal : à une position)"},
     {U"Switches between insert and overwrite mode",
      U"Bascule entre insertion et refrappe"},
     {U"New lines keep the indentation of the previous line",
@@ -404,7 +404,7 @@ static const char32_t* const T[][2] = {
      U"Erreur de lecture."},
     {U"Write error.",
      U"Erreur d'écriture."},
-    {U"Usage: %s [-n|-r] [-o|-O|-p] [--vim] [--lang=CODE] [file ...]\n"
+    {U"Usage: %s [-n|-r] [-o|-O|-p] [--vim] [--hex] [--lang=CODE] [file ...]\n"
      U"\n"
      U"Text editor for the terminal.\n"
      U"Alt or F10 opens the menu, F1 shows the help.\n"
@@ -414,13 +414,15 @@ static const char32_t* const T[][2] = {
      U"  -o / -O       several files in windows above each other / side by side\n"
      U"  -p            several files in tabs (the default)\n"
      U"  --vim         start with the Vim key bindings (Options > Vim Mode)\n"
+     U"  --hex         show the files as bytes in hex mode (Options > Hex Mode);\n"
+     U"                binary files are always opened in hex mode\n"
      U"  --lang=CODE   user interface language: %s\n"
      U"                (default: from the locale)\n"
      U"  --version     show the version\n"
      U"  --ts-check    load and check all tree-sitter grammars\n"
      U"\n"
      U"The environment variable EDITH_COLORS=16 forces 16 colors instead of true color.\n",
-     U"Usage : %s [-n|-r] [-o|-O|-p] [--vim] [--lang=CODE] [fichier ...]\n"
+     U"Usage : %s [-n|-r] [-o|-O|-p] [--vim] [--hex] [--lang=CODE] [fichier ...]\n"
      U"\n"
      U"Éditeur de texte pour le terminal.\n"
      U"Alt ou F10 ouvre le menu, F1 affiche l'aide.\n"
@@ -430,6 +432,8 @@ static const char32_t* const T[][2] = {
      U"  -o / -O       plusieurs fichiers dans des fenêtres superposées / côte à côte\n"
      U"  -p            plusieurs fichiers dans des onglets (par défaut)\n"
      U"  --vim         démarrer avec les raccourcis de Vim (Options > Mode Vim)\n"
+     U"  --hex         afficher les fichiers en octets (Options > Mode hexadécimal) ;\n"
+     U"                les fichiers binaires s'ouvrent toujours en mode hexadécimal\n"
      U"  --lang=CODE   langue de l'interface : %s\n"
      U"                (par défaut : selon la locale)\n"
      U"  --version     afficher la version\n"
@@ -678,6 +682,22 @@ static const char32_t* const T[][2] = {
      U"E939 : Quantité positive requise"},
     {U"E944: Reverse range in character class",
      U"E944 : Plage inversée dans la classe de caractères"},
+
+    // Hex mode
+    {U"He&x Mode",
+     U"Mode &hexadécimal"},
+    {U"Shows and edits the bytes of the file in hexadecimal",
+     U"Affiche et modifie les octets du fichier en hexadécimal"},
+    {U"Hex Bytes (e.g. 4F 0A)",
+     U"Octets hex (p. ex. 4F 0A)"},
+    {U"Please enter bytes as hex digits, e.g. 4F 0A.",
+     U"Saisissez les octets en chiffres hexadécimaux, p. ex. 4F 0A."},
+    {U"Go to Offset",
+     U"Aller à la position"},
+    {U"Offset (hex):",
+     U"Position (hex) :"},
+    {U"Please enter a hexadecimal number.",
+     U"Veuillez saisir un nombre hexadécimal."},
 };
 
 // The help text (Help > Keyboard and Mouse)
@@ -777,6 +797,15 @@ static const std::vector<u32> HELP = {
     U"  En mode Vim : Ctrl+W s v w h j k l c o q + - < > = _ | T,",
     U"  gt gT et :split :vsplit :new :close :only :resize",
     U"  :tabnew :tabclose :tabnext :tabprevious :tabmove :tabs.",
+    U"",
+    U"MODE HEXADÉCIMAL",
+    U"  Options > Mode hexadécimal (ou edith --hex) affiche les octets",
+    U"  du fichier en hexadécimal et en caractères ; les fichiers",
+    U"  binaires s'ouvrent automatiquement dans ce mode. Les chiffres",
+    U"  hexadécimaux modifient les octets, Tab passe aux caractères.",
+    U"  Inser bascule entre refrappe et insertion, Suppr et Retour",
+    U"  arrière effacent des octets, Ctrl+F cherche du texte ou des",
+    U"  octets, Ctrl+G va à une position (hexadécimale).",
     U"",
     U"MODE VIM",
     U"  Options > Mode Vim (ou edith --vim) active les raccourcis",

@@ -250,8 +250,8 @@ static const char32_t* const T[][2] = {
      U"Znajduje następne wystąpienie"},
     {U"Finds text and replaces it",
      U"Znajduje tekst i go zamienia"},
-    {U"Jumps to a line number",
-     U"Przechodzi do numeru wiersza"},
+    {U"Jumps to a line number (in hex mode: to an offset)",
+     U"Przechodzi do numeru wiersza (w trybie heksadecymalnym: do pozycji)"},
     {U"Switches between insert and overwrite mode",
      U"Przełącza między wstawianiem a nadpisywaniem"},
     {U"New lines keep the indentation of the previous line",
@@ -404,7 +404,7 @@ static const char32_t* const T[][2] = {
      U"Błąd odczytu."},
     {U"Write error.",
      U"Błąd zapisu."},
-    {U"Usage: %s [-n|-r] [-o|-O|-p] [--vim] [--lang=CODE] [file ...]\n"
+    {U"Usage: %s [-n|-r] [-o|-O|-p] [--vim] [--hex] [--lang=CODE] [file ...]\n"
      U"\n"
      U"Text editor for the terminal.\n"
      U"Alt or F10 opens the menu, F1 shows the help.\n"
@@ -414,13 +414,15 @@ static const char32_t* const T[][2] = {
      U"  -o / -O       several files in windows above each other / side by side\n"
      U"  -p            several files in tabs (the default)\n"
      U"  --vim         start with the Vim key bindings (Options > Vim Mode)\n"
+     U"  --hex         show the files as bytes in hex mode (Options > Hex Mode);\n"
+     U"                binary files are always opened in hex mode\n"
      U"  --lang=CODE   user interface language: %s\n"
      U"                (default: from the locale)\n"
      U"  --version     show the version\n"
      U"  --ts-check    load and check all tree-sitter grammars\n"
      U"\n"
      U"The environment variable EDITH_COLORS=16 forces 16 colors instead of true color.\n",
-     U"Użycie: %s [-n|-r] [-o|-O|-p] [--vim] [--lang=CODE] [plik ...]\n"
+     U"Użycie: %s [-n|-r] [-o|-O|-p] [--vim] [--hex] [--lang=CODE] [plik ...]\n"
      U"\n"
      U"Edytor tekstu dla terminala.\n"
      U"Alt lub F10 otwiera menu, F1 pokazuje pomoc.\n"
@@ -430,6 +432,8 @@ static const char32_t* const T[][2] = {
      U"  -o / -O       kilka plików w oknach jeden pod drugim / obok siebie\n"
      U"  -p            kilka plików w kartach (domyślnie)\n"
      U"  --vim         uruchom z klawiszami Vima (Opcje > Tryb Vim)\n"
+     U"  --hex         pokaż pliki jako bajty (Opcje > Tryb heksadecymalny);\n"
+     U"                pliki binarne zawsze otwierają się w tym trybie\n"
      U"  --lang=CODE   język interfejsu: %s\n"
      U"                (domyślnie: z ustawień regionalnych)\n"
      U"  --version     pokaż wersję\n"
@@ -678,6 +682,22 @@ static const char32_t* const T[][2] = {
      U"E939: Wymagana dodatnia liczba"},
     {U"E944: Reverse range in character class",
      U"E944: Odwrócony zakres w klasie znaków"},
+
+    // Hex mode
+    {U"He&x Mode",
+     U"Tryb &heksadecymalny"},
+    {U"Shows and edits the bytes of the file in hexadecimal",
+     U"Pokazuje i edytuje bajty pliku szesnastkowo"},
+    {U"Hex Bytes (e.g. 4F 0A)",
+     U"Bajty szesnastkowo (np. 4F 0A)"},
+    {U"Please enter bytes as hex digits, e.g. 4F 0A.",
+     U"Podaj bajty jako cyfry szesnastkowe, np. 4F 0A."},
+    {U"Go to Offset",
+     U"Przejdź do pozycji"},
+    {U"Offset (hex):",
+     U"Pozycja (szesnastkowo):"},
+    {U"Please enter a hexadecimal number.",
+     U"Podaj liczbę szesnastkową."},
 };
 
 // The help text (Help > Keyboard and Mouse)
@@ -775,6 +795,14 @@ static const std::vector<u32> HELP = {
     U"  W trybie Vim: Ctrl+W s v w h j k l c o q + - < > = _ | T,",
     U"  gt gT oraz :split :vsplit :new :close :only :resize",
     U"  :tabnew :tabclose :tabnext :tabprevious :tabmove :tabs.",
+    U"",
+    U"TRYB HEKSADECYMALNY",
+    U"  Opcje > Tryb heksadecymalny (lub edith --hex) pokazuje bajty",
+    U"  pliku szesnastkowo i jako znaki; pliki binarne otwierają się",
+    U"  w tym trybie automatycznie. Cyfry szesnastkowe zmieniają",
+    U"  bajty, Tab przechodzi do znaków. Ins przełącza nadpisywanie",
+    U"  i wstawianie, Del i Backspace usuwają bajty, Ctrl+F szuka",
+    U"  tekstu lub bajtów, Ctrl+G przechodzi do pozycji (szesnastkowo).",
     U"",
     U"TRYB VIM",
     U"  Opcje > Tryb Vim (lub edith --vim) włącza klawisze Vima:",

@@ -250,8 +250,8 @@ static const char32_t* const T[][2] = {
      U"Megkeresi a következő előfordulást"},
     {U"Finds text and replaces it",
      U"Szöveget keres és lecseréli"},
-    {U"Jumps to a line number",
-     U"Egy sorszámra ugrik"},
+    {U"Jumps to a line number (in hex mode: to an offset)",
+     U"Egy sorszámra ugrik (hexa módban: egy pozícióra)"},
     {U"Switches between insert and overwrite mode",
      U"Vált a beszúrás és a felülírás között"},
     {U"New lines keep the indentation of the previous line",
@@ -404,7 +404,7 @@ static const char32_t* const T[][2] = {
      U"Olvasási hiba."},
     {U"Write error.",
      U"Írási hiba."},
-    {U"Usage: %s [-n|-r] [-o|-O|-p] [--vim] [--lang=CODE] [file ...]\n"
+    {U"Usage: %s [-n|-r] [-o|-O|-p] [--vim] [--hex] [--lang=CODE] [file ...]\n"
      U"\n"
      U"Text editor for the terminal.\n"
      U"Alt or F10 opens the menu, F1 shows the help.\n"
@@ -414,13 +414,15 @@ static const char32_t* const T[][2] = {
      U"  -o / -O       several files in windows above each other / side by side\n"
      U"  -p            several files in tabs (the default)\n"
      U"  --vim         start with the Vim key bindings (Options > Vim Mode)\n"
+     U"  --hex         show the files as bytes in hex mode (Options > Hex Mode);\n"
+     U"                binary files are always opened in hex mode\n"
      U"  --lang=CODE   user interface language: %s\n"
      U"                (default: from the locale)\n"
      U"  --version     show the version\n"
      U"  --ts-check    load and check all tree-sitter grammars\n"
      U"\n"
      U"The environment variable EDITH_COLORS=16 forces 16 colors instead of true color.\n",
-     U"Használat: %s [-n|-r] [-o|-O|-p] [--vim] [--lang=CODE] [fájl ...]\n"
+     U"Használat: %s [-n|-r] [-o|-O|-p] [--vim] [--hex] [--lang=CODE] [fájl ...]\n"
      U"\n"
      U"Szövegszerkesztő a terminálhoz.\n"
      U"Az Alt vagy az F10 megnyitja a menüt, az F1 a súgót.\n"
@@ -430,6 +432,8 @@ static const char32_t* const T[][2] = {
      U"  -o / -O       több fájl egymás alatti / melletti ablakokban\n"
      U"  -p            több fájl lapokon (alapértelmezés)\n"
      U"  --vim         indítás a Vim billentyűivel (Beállítások > Vim mód)\n"
+     U"  --hex         a fájlok bájtokként, hexa módban (Beállítások > Hexa mód);\n"
+     U"                a bináris fájlok mindig hexa módban nyílnak meg\n"
      U"  --lang=CODE   a felület nyelve: %s\n"
      U"                (alapértelmezés: a területi beállításból)\n"
      U"  --version     a verziószám kiírása\n"
@@ -678,6 +682,22 @@ static const char32_t* const T[][2] = {
      U"E939: Pozitív szám szükséges"},
     {U"E944: Reverse range in character class",
      U"E944: Fordított tartomány a karakterosztályban"},
+
+    // Hex mode
+    {U"He&x Mode",
+     U"&Hexa mód"},
+    {U"Shows and edits the bytes of the file in hexadecimal",
+     U"Megjeleníti és szerkeszti a fájl bájtjait hexadecimálisan"},
+    {U"Hex Bytes (e.g. 4F 0A)",
+     U"Hexa bájtok (pl. 4F 0A)"},
+    {U"Please enter bytes as hex digits, e.g. 4F 0A.",
+     U"A bájtokat hexadecimális számjegyekkel adja meg, pl. 4F 0A."},
+    {U"Go to Offset",
+     U"Ugrás pozícióra"},
+    {U"Offset (hex):",
+     U"Pozíció (hexa):"},
+    {U"Please enter a hexadecimal number.",
+     U"Adjon meg egy hexadecimális számot."},
 };
 
 // The help text (Help > Keyboard and Mouse)
@@ -775,6 +795,15 @@ static const std::vector<u32> HELP = {
     U"  Vim módban: Ctrl+W s v w h j k l c o q + - < > = _ | T,",
     U"  gt gT és :split :vsplit :new :close :only :resize",
     U"  :tabnew :tabclose :tabnext :tabprevious :tabmove :tabs.",
+    U"",
+    U"HEXA MÓD",
+    U"  Beállítások > Hexa mód (vagy edith --hex) a fájl bájtjait",
+    U"  hexadecimálisan és karakterként mutatja; a bináris fájlok",
+    U"  automatikusan hexa módban nyílnak meg. A hexa számjegyek",
+    U"  módosítják a bájtokat, a Tab a karakterekre vált. Az Ins a",
+    U"  felülírás és a beszúrás között vált, a Del és a Backspace",
+    U"  bájtokat töröl, a Ctrl+F szöveget vagy hexa bájtokat keres,",
+    U"  a Ctrl+G egy (hexadecimális) pozícióra ugrik.",
     U"",
     U"VIM MÓD",
     U"  Beállítások > Vim mód (vagy edith --vim) bekapcsolja a Vim",

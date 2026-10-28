@@ -13,6 +13,18 @@
 #include "utf8.h"
 
 bool App::enabled(int act) const {
+    if (hexMode()) {
+        const HexBuf& h = *doc().hex;
+        switch (act) {
+            case A_UNDO: return !h.undo.empty();
+            case A_REDO: return !h.redo.empty();
+            case A_CUT: case A_COPY: case A_CLEAR: return h.hasSel();
+            // the text options and commands do not apply to bytes
+            case A_FORMAT: case A_REPLACE: case A_AUTOINDENT: case A_EXPANDTAB: case A_TABWIDTH:
+            case A_LINENUM: case A_RELNUM: case A_INVISIBLES: case A_SYNTAX: case A_LANG: case A_VIM:
+                return false;
+        }
+    }
     switch (act) {
         case A_UNDO: return !ed.undo.empty();
         case A_REDO: return !ed.redo.empty();
@@ -26,7 +38,8 @@ bool App::enabled(int act) const {
 
 bool App::checked(int act) const {
     switch (act) {
-        case A_OVERWRITE: return S.overwrite;
+        case A_OVERWRITE: return hexMode() ? !doc().hex->insert : S.overwrite;
+        case A_HEX: return hexMode();
         case A_AUTOINDENT: return S.autoindent;
         case A_EXPANDTAB: return S.expandtab;
         case A_SYNTAX: return S.syntax;

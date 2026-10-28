@@ -119,7 +119,8 @@ static const char32_t* const T[][2] = {
     {U"Searches for text", U"Sucht nach einem Text"},
     {U"Finds the next occurrence", U"Sucht das nächste Vorkommen"},
     {U"Finds text and replaces it", U"Sucht einen Text und ersetzt ihn"},
-    {U"Jumps to a line number", U"Springt zu einer Zeilennummer"},
+    {U"Jumps to a line number (in hex mode: to an offset)",
+     U"Springt zu einer Zeilennummer (im Hex-Modus: zu einem Offset)"},
     {U"Switches between insert and overwrite mode", U"Schaltet zwischen Einfügen und Überschreiben um"},
     {U"New lines keep the indentation of the previous line", U"Neue Zeilen übernehmen die Einrückung der vorigen"},
     {U"The Tab key inserts spaces instead of tab characters", U"Die Tabulatortaste fügt Leerzeichen statt Tabs ein"},
@@ -205,7 +206,7 @@ static const char32_t* const T[][2] = {
     {U"Write error.", U"Schreibfehler."},
 
     // Command line
-    {U"Usage: %s [-n|-r] [-o|-O|-p] [--vim] [--lang=CODE] [file ...]\n\n"
+    {U"Usage: %s [-n|-r] [-o|-O|-p] [--vim] [--hex] [--lang=CODE] [file ...]\n\n"
      U"Text editor for the terminal.\n"
      U"Alt or F10 opens the menu, F1 shows the help.\n\n"
      U"  -n            show line numbers\n"
@@ -213,11 +214,13 @@ static const char32_t* const T[][2] = {
      U"  -o / -O       several files in windows above each other / side by side\n"
      U"  -p            several files in tabs (the default)\n"
      U"  --vim         start with the Vim key bindings (Options > Vim Mode)\n"
+     U"  --hex         show the files as bytes in hex mode (Options > Hex Mode);\n"
+     U"                binary files are always opened in hex mode\n"
      U"  --lang=CODE   user interface language: %s\n                (default: from the locale)\n"
      U"  --version     show the version\n"
      U"  --ts-check    load and check all tree-sitter grammars\n\n"
      U"The environment variable EDITH_COLORS=16 forces 16 colors instead of true color.\n",
-     U"Aufruf: %s [-n|-r] [-o|-O|-p] [--vim] [--lang=CODE] [datei ...]\n\n"
+     U"Aufruf: %s [-n|-r] [-o|-O|-p] [--vim] [--hex] [--lang=CODE] [datei ...]\n\n"
      U"Texteditor für das Terminal.\n"
      U"Alt oder F10 öffnet das Menü, F1 zeigt die Hilfe.\n\n"
      U"  -n            Zeilennummern einblenden\n"
@@ -225,6 +228,8 @@ static const char32_t* const T[][2] = {
      U"  -o / -O       mehrere Dateien in Fenstern unter- / nebeneinander\n"
      U"  -p            mehrere Dateien in Tabs (Standard)\n"
      U"  --vim         mit Vim-Tastenbelegung starten (Optionen > Vim-Modus)\n"
+     U"  --hex         Dateien als Bytes im Hex-Modus zeigen (Optionen > Hex-Modus);\n"
+     U"                Binärdateien öffnen immer im Hex-Modus\n"
      U"  --lang=CODE   Sprache der Oberfläche: %s\n                (Standard: aus der Locale)\n"
      U"  --version     Versionsnummer anzeigen\n"
      U"  --ts-check    alle tree-sitter-Grammatiken laden und prüfen\n\n"
@@ -357,6 +362,15 @@ static const char32_t* const T[][2] = {
     {U"E748: No previously used register", U"E748: Kein zuvor verwendetes Register"},
     {U"E939: Positive count required", U"E939: Positive Anzahl erforderlich"},
     {U"E944: Reverse range in character class", U"E944: Umgekehrter Bereich in Zeichenklasse"},
+
+    // Hex mode
+    {U"He&x Mode", U"&Hex-Modus"},
+    {U"Shows and edits the bytes of the file in hexadecimal", U"Zeigt und bearbeitet die Bytes der Datei hexadezimal"},
+    {U"Hex Bytes (e.g. 4F 0A)", U"Hex-Bytes (z.B. 4F 0A)"},
+    {U"Please enter bytes as hex digits, e.g. 4F 0A.", U"Bitte Bytes als Hexziffern eingeben, z.B. 4F 0A."},
+    {U"Go to Offset", U"Gehe zu Offset"},
+    {U"Offset (hex):", U"Offset (hex):"},
+    {U"Please enter a hexadecimal number.", U"Bitte eine Hexadezimalzahl eingeben."},
 };
 
 // The help text (Help > Keyboard and Mouse)
@@ -455,6 +469,14 @@ static const std::vector<u32> HELP = {
     U"  Im Vim-Modus: Strg+W s v w h j k l c o q + - < > = _ | T,",
     U"  gt gT und :split :vsplit :new :close :only :resize",
     U"  :tabnew :tabclose :tabnext :tabprevious :tabmove :tabs.",
+    U"",
+    U"HEX-MODUS",
+    U"  Optionen > Hex-Modus (oder edith --hex) zeigt die Bytes der",
+    U"  Datei hexadezimal und als Zeichen; Binärdateien öffnen",
+    U"  automatisch im Hex-Modus. Hexziffern ändern die Bytes, Tab",
+    U"  wechselt zu den Zeichen. Einfg schaltet zwischen Überschreiben",
+    U"  und Einfügen um, Entf und Rücktaste löschen Bytes, Strg+F sucht",
+    U"  Text oder Hex-Bytes, Strg+G springt zu einem Offset (hex).",
     U"",
     U"VIM-MODUS",
     U"  Optionen > Vim-Modus (oder edith --vim) schaltet die Vim-",

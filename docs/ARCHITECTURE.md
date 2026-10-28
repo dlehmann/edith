@@ -33,6 +33,7 @@ ncurses: `terminal.cpp` puts the terminal into raw mode and decodes the input it
 | `menus.*`, `i18n*.cpp` | menu definitions, help text, translations |
 | `languages.*`, `lexer.*`, `treesitter.*` | language detection and syntax highlighting |
 | `format.*`, `app_format.cpp`, `process.*` | Reformat Code and running external programs |
+| `hex.*`, `app_hex.cpp` | hex mode: the bytes with cursor and undo (`HexBuf`), drawing, keys and mouse |
 | `clipboard.*` | the system clipboard (clipboard programs, OSC 52) |
 | `search.*` | regular expressions in the Find and Change dialogs (with `vimregex.*`) |
 | `utf8.*`, `paths.*`, `common.h` | helpers |
@@ -103,6 +104,18 @@ and every command is enclosed in `beginChange()` / `endChange()` – one undo st
 recorded for `.` when nothing changed. Everything the engine needs from the application
 (clipboard, dialogs, windows, quitting, formatting) is a virtual function of `VimHost`;
 `AppVimHost` in `app.cpp` implements it.
+
+## Hex mode
+
+A buffer in hex mode has a `HexBuf` in `Doc::hex` (null in text mode): the bytes of the file,
+the cursor as a byte offset, the selection and an undo list of byte replacements. `App::ed`
+keeps the file name and the modified flag; its text stays as it was and `HexBuf::stale` says
+that it no longer matches the bytes. Switching back (`App::setHex()`) decodes the bytes like
+loading a file (`Editor::setData()`) as one undo step; `Editor::byteOffset()` and
+`posOfByte()` keep the cursor in place. `openPath()` and Vim's `:e` open a file in hex mode when
+`looksBinary()` says so. In hex mode `App::handleKey()` and `doAct()` pass keys and menu actions
+to `app_hex.cpp` before the Vim engine and the text commands, and `App::enabled()` grays out
+what only applies to text.
 
 ## Reformat Code
 

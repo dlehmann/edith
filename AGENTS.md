@@ -93,6 +93,8 @@ make test                 # unit tests (build/edith-tests) and pty end-to-end te
 | `src/process.*` | running external programs without the terminal (formatters, Vim's `:!`, `:r !`, `:w !`, filters) |
 | `src/version.h` | the version number (`--version`, About dialog); also in `docs/edith.1`, `CHANGELOG.md` and `packaging/arch/PKGBUILD` (a test compares them) |
 | `src/app_format.cpp` | Reformat Code in the application, re-indenting by the syntax tree (`TsDoc::indents`) |
+| `src/hex.*` | hex mode: `HexBuf` (bytes, cursor, undo, Find), the row layout, `looksBinary()` |
+| `src/app_hex.cpp` | hex mode in the application: switching, drawing, keys, mouse, Find, Go to Offset |
 | `src/utf8.*`, `src/paths.*`, `src/common.h` | helpers |
 | `tests/` | test framework, unit/integration tests, `pty_test.py` end-to-end tests |
 | `tools/` | grammar download and registry generation |
@@ -191,6 +193,7 @@ command, an option or a UI string, add or extend the test that covers it.
 - `tests/apptest.h`: `AppT` for application tests; `tests/test_windows.cpp` covers windows and
   tabs, `tests/test_windows_fuzz.cpp` mixes random window, tab and editing commands.
 - `tests/test_process.cpp`: `runCommand()` and `runShell()`.
+- `tests/test_hex.cpp`: `HexBuf`, binary file detection and hex mode in the application.
 - `tests/pty_test.py`: end-to-end checks of the binary in a pseudo terminal in every language
   and of the command line options.
 - The tests also check that every `tr()`/`trs()` string is translated in every language with

@@ -159,10 +159,20 @@ bool App::confirmDiscard() {
     return r == 1;
 }
 
+bool App::saveDoc(Doc* d, const std::string& path, std::string& err, bool& conv) {
+    Editor& e = textOf(d);
+    conv = false;
+    if (!d->hex) return e.save(path, err, conv);
+    if (!writeFile(path, d->hex->data, err)) return false;
+    e.filename = path;
+    e.modified = false;
+    return true;
+}
+
 bool App::writeTo(const std::string& path) {
     std::string err;
     bool conv;
-    if (!ed.save(path, err, conv)) {
+    if (!saveDoc(&doc(), path, err, conv)) {
         error(tr(U"The file could not be saved:\n") + U(err));
         return false;
     }
@@ -195,17 +205,25 @@ void App::openPath(const std::string& p) {
     if (!fileExists(p)) {
         ed = Editor();
         ed.filename = p;
+        doc().hex.reset();
         autoLang();
         vim.reset();
+        if (hexStart) setHex(true);
         return;
     }
-    std::string err;
-    Editor e;
-    if (!e.load(p, err)) {
+    std::string err, data;
+    if (!readFile(p, data, err)) {
         error(tr(U"The file could not be opened:\n") + U(err));
         return;
     }
-    ed = std::move(e);
+    ed = Editor();
+    ed.filename = p;
+    if (hexStart || looksBinary(data)) {
+        hexFromFile(std::move(data));
+    } else {
+        doc().hex.reset();
+        ed.setData(std::move(data));
+    }
     autoLang();
     vim.reset();
 }

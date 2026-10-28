@@ -29,6 +29,9 @@ Spanish, Italian, Hungarian and Polish.
 - **Vim mode** (Options > Vim Mode or `--vim`) that follows Vim's documented behavior:
   operators, text objects, registers, macros, marks, Vim regular expressions, Ex commands,
   mappings and more.
+- **Hex mode** (Options > Hex Mode or `--hex`) for binary files, which open in it
+  automatically: the bytes in hex and as characters, overwrite and insert, undo, Find for text
+  or hex bytes, Go to Offset.
 - Files are kept in their format: UTF-8 or Latin-1, LF or CRLF, with or without BOM. Saving
   replaces a file only after the new text has been written completely.
 - Works in any terminal with 16 colors; true color terminals get the original CGA palette.
@@ -112,6 +115,7 @@ already contain `third_party/` and build without network access – on Linux and
 edith file.txt             # open a file
 edith -n file.txt          # with line numbers (-r: relative line numbers)
 edith --vim file.txt       # with the Vim key bindings
+edith --hex file.bin       # the bytes in hex mode (binary files open in it anyway)
 edith a.c b.c              # several files in tabs (-o / -O: in split windows)
 edith --lang=fr            # the UI language (default: from the locale)
 edith --version            # show the version
@@ -147,6 +151,16 @@ or the border between windows resizes them, and the tabs are shown in the top li
 `Ctrl-W s v n c q o w W h j k l t b p + - _ | < > = T`, `gt`, `gT` and `:split :vsplit :new
 :vnew :close :only :resize :vertical :wincmd :tabnew :tabedit :tabclose :tabonly :tabnext
 :tabprevious :tabfirst :tablast :tabmove :tabs`, `:wa :qa :wqa :xa`.
+
+## Hex mode
+
+Options > Hex Mode (or `--hex`) shows the bytes of the file as hex digits and as characters;
+binary files (a NUL byte or many control characters at the start) are opened in hex mode
+automatically. Hex digits change the bytes, Tab switches to the character area, Ins switches
+between overwrite (the default) and insert, Del and Backspace delete bytes. Undo, the
+clipboard, Find (Ctrl+F, for text or hex bytes such as `4F 0A`) and Go to (Ctrl+G, an offset
+in hex) work as usual; the menu entries that only apply to text are grayed out. Saving writes
+the bytes as they are, and switching back shows them as text again (one undo step).
 
 ## Reformat Code
 

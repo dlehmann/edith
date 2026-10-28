@@ -128,7 +128,20 @@ u32 App::titleOf(const Editor& e) const {
     return name + (e.modified ? U" *" : U"");
 }
 
+void App::drawWinStatus(Win& w, bool active) {
+    // the status line of a window (only with several windows)
+    if (w.sy < 0) return;
+    Attr a = active ? Col::TITLE : Col::FRAME;
+    scr.fill(w.x, w.sy, w.w, a, active ? U' ' : U'─');
+    scr.text(w.x + 1, w.sy, U" " + titleOf(textOf(w.doc)) + U" ", active ? Col::TITLE : Col::FRAME, w.w - 2);
+}
+
 void App::drawWindow(Win& w, bool active) {
+    if (w.doc->hex) {
+        drawHexWindow(w, active);
+        drawWinStatus(w, active);
+        return;
+    }
     Doc& d = *w.doc;
     Editor& e = textOf(&d);
     View v;
@@ -202,12 +215,7 @@ void App::drawWindow(Win& w, bool active) {
         drawLine(x0, v.left, width, y, l, s, en, cls, S.vim && !hlSpans.empty() ? &hlSpans : nullptr,
                  li + 1 < nl ? (e.crlf ? 2 : 1) : 0);
     }
-    // status line of the window (only with several windows)
-    if (w.sy >= 0) {
-        Attr a = active ? Col::TITLE : Col::FRAME;
-        scr.fill(w.x, w.sy, w.w, a, active ? U' ' : U'─');
-        scr.text(w.x + 1, w.sy, U" " + titleOf(e) + U" ", active ? Col::TITLE : Col::FRAME, w.w - 2);
-    }
+    drawWinStatus(w, active);
 }
 
 void App::drawSeparators(Node* n) {
@@ -281,7 +289,11 @@ void App::drawEditor() {
     drawSeparators(tab().root.get());
 
     // vertical scroll bar (active window)
-    int nl = ed.n();
+    long nl = ed.n(), top = ed.top;
+    if (hexMode()) {
+        nl = long(doc().hex->size() / size_t(hexLayout().per)) + 1;
+        top = long(doc().hex->top);
+    }
     int X = W - 1;
     if (ah >= 2) {
         scr.put(X, ay, U'↑', Col::SCROLL);
@@ -289,7 +301,7 @@ void App::drawEditor() {
         int tl2 = ah - 2;
         for (int r = 0; r < tl2; r++) scr.put(X, ay + 1 + r, U'░', Col::SCROLL);
         if (tl2 > 0) {
-            int pos = nl > th() ? std::min(tl2 - 1, ed.top * (tl2 - 1) / std::max(1, nl - th())) : 0;
+            int pos = nl > th() ? int(std::min<long>(tl2 - 1, top * (tl2 - 1) / std::max(1L, nl - th()))) : 0;
             scr.put(X, ay + 1 + std::max(0, pos), U'■', Col::SCROLL);
         }
     }
@@ -303,7 +315,7 @@ void App::drawEditor() {
     scr.fill(2, by, htl, Col::SCROLL, U'░');
     if (htl > 0) {
         int rng = std::max(1, maxLineWidth() - tw());
-        int pos = std::clamp(ed.left * (htl - 1) / rng, 0, htl - 1);
+        int pos = hexMode() ? 0 : std::clamp(ed.left * (htl - 1) / rng, 0, htl - 1);
         scr.put(2 + pos, by, U'■', Col::SCROLL);
     }
 }
@@ -339,7 +351,10 @@ void App::drawStatus(const u32* status) {
     u32 left = status ? *status : statusMsg;
     Attr la = !status && !statusMsg.empty() && statusErr ? Col::ERRMSG : Col::STATUS;
     u32 right;
-    if (S.vim) {
+    if (hexMode()) {
+        if (left.empty()) left = statusHint();
+        right = hexStatus();
+    } else if (S.vim) {
         // Vim mode: only Vim's messages, the partly typed command and "vim"
         if (!status) {
             u32 vs = vim.statusText();
@@ -385,6 +400,10 @@ void App::drawAll(const u32* status, int activeMenu) {
 }
 
 void App::placeCursor() {
+    if (hexMode()) {
+        scr.cvis = !tooSmall() && hexCursor();
+        return;
+    }
     if (S.vim && vim.cmdlineActive() && !tooSmall()) {
         int w = scr.w - 2, cur = vim.cmdlineCursor();
         scr.cvis = true;

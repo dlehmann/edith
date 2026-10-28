@@ -18,7 +18,7 @@
 #include "version.h"
 
 static void usage(const char* argv0) {
-    printf(trs("Usage: %s [-n|-r] [-o|-O|-p] [--vim] [--lang=CODE] [file ...]\n\n"
+    printf(trs("Usage: %s [-n|-r] [-o|-O|-p] [--vim] [--hex] [--lang=CODE] [file ...]\n\n"
                "Text editor for the terminal.\n"
                "Alt or F10 opens the menu, F1 shows the help.\n\n"
                "  -n            show line numbers\n"
@@ -26,6 +26,8 @@ static void usage(const char* argv0) {
                "  -o / -O       several files in windows above each other / side by side\n"
                "  -p            several files in tabs (the default)\n"
                "  --vim         start with the Vim key bindings (Options > Vim Mode)\n"
+               "  --hex         show the files as bytes in hex mode (Options > Hex Mode);\n"
+               "                binary files are always opened in hex mode\n"
                "  --lang=CODE   user interface language: %s\n                (default: from the locale)\n"
                "  --version     show the version\n"
                "  --ts-check    load and check all tree-sitter grammars\n\n"
@@ -50,6 +52,7 @@ int main(int argc, char** argv) {
     std::vector<std::string> paths;
     char how = 't';  // several files: tabs, -o / -O: split windows
     bool options = true;  // false after "--": everything else is a file name
+    bool hex = false;     // --hex
     for (int i = 1; i < argc; i++) {
         std::string a = argv[i];
         if (!options || a.size() < 2 || a[0] != '-') {
@@ -72,6 +75,7 @@ int main(int argc, char** argv) {
         if (a == "-n") { S.lineNums = 1; continue; }
         if (a == "-r") { S.lineNums = 2; continue; }
         if (a == "--vim") { S.vim = true; continue; }
+        if (a == "--hex") { hex = true; continue; }
         if (a == "-o" || a == "-O" || a == "-p") { how = a == "-p" ? 't' : a[1]; continue; }
         if (a.compare(0, 7, "--lang=") == 0) continue;
         fprintf(stderr, trs("edith: unknown option \"%s\" (see edith --help).\n").c_str(), a.c_str());
@@ -101,7 +105,10 @@ int main(int argc, char** argv) {
     if (force && strcmp(force, "24") == 0) app->scr.truecolor = true;
     app->scr.resize();
     for (auto& p : paths) p = absPath(p);
+    app->hexStart = hex;
     if (!paths.empty()) app->openFiles(paths, how);
+    else if (hex) app->setHex(true);
+    app->hexStart = false;
     app->run();
     termRestore();
     return 0;

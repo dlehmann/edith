@@ -250,8 +250,8 @@ static const char32_t* const T[][2] = {
      U"Busca la siguiente aparición"},
     {U"Finds text and replaces it",
      U"Busca un texto y lo reemplaza"},
-    {U"Jumps to a line number",
-     U"Salta a un número de línea"},
+    {U"Jumps to a line number (in hex mode: to an offset)",
+     U"Salta a un número de línea (en modo hexadecimal: a una posición)"},
     {U"Switches between insert and overwrite mode",
      U"Cambia entre insertar y sobrescribir"},
     {U"New lines keep the indentation of the previous line",
@@ -404,7 +404,7 @@ static const char32_t* const T[][2] = {
      U"Error de lectura."},
     {U"Write error.",
      U"Error de escritura."},
-    {U"Usage: %s [-n|-r] [-o|-O|-p] [--vim] [--lang=CODE] [file ...]\n"
+    {U"Usage: %s [-n|-r] [-o|-O|-p] [--vim] [--hex] [--lang=CODE] [file ...]\n"
      U"\n"
      U"Text editor for the terminal.\n"
      U"Alt or F10 opens the menu, F1 shows the help.\n"
@@ -414,13 +414,15 @@ static const char32_t* const T[][2] = {
      U"  -o / -O       several files in windows above each other / side by side\n"
      U"  -p            several files in tabs (the default)\n"
      U"  --vim         start with the Vim key bindings (Options > Vim Mode)\n"
+     U"  --hex         show the files as bytes in hex mode (Options > Hex Mode);\n"
+     U"                binary files are always opened in hex mode\n"
      U"  --lang=CODE   user interface language: %s\n"
      U"                (default: from the locale)\n"
      U"  --version     show the version\n"
      U"  --ts-check    load and check all tree-sitter grammars\n"
      U"\n"
      U"The environment variable EDITH_COLORS=16 forces 16 colors instead of true color.\n",
-     U"Uso: %s [-n|-r] [-o|-O|-p] [--vim] [--lang=CODE] [archivo ...]\n"
+     U"Uso: %s [-n|-r] [-o|-O|-p] [--vim] [--hex] [--lang=CODE] [archivo ...]\n"
      U"\n"
      U"Editor de texto para la terminal.\n"
      U"Alt o F10 abre el menú, F1 muestra la ayuda.\n"
@@ -430,6 +432,8 @@ static const char32_t* const T[][2] = {
      U"  -o / -O       varios archivos en ventanas una sobre otra / lado a lado\n"
      U"  -p            varios archivos en pestañas (por defecto)\n"
      U"  --vim         empezar con las teclas de Vim (Opciones > Modo Vim)\n"
+     U"  --hex         mostrar los archivos como bytes (Opciones > Modo hexadecimal);\n"
+     U"                los archivos binarios se abren siempre en modo hexadecimal\n"
      U"  --lang=CODE   idioma de la interfaz: %s\n"
      U"                (por defecto: según la configuración regional)\n"
      U"  --version     mostrar la versión\n"
@@ -678,6 +682,22 @@ static const char32_t* const T[][2] = {
      U"E939: Se necesita una cantidad positiva"},
     {U"E944: Reverse range in character class",
      U"E944: Rango invertido en la clase de caracteres"},
+
+    // Hex mode
+    {U"He&x Mode",
+     U"Modo &hexadecimal"},
+    {U"Shows and edits the bytes of the file in hexadecimal",
+     U"Muestra y edita los bytes del archivo en hexadecimal"},
+    {U"Hex Bytes (e.g. 4F 0A)",
+     U"Bytes hex (p. ej. 4F 0A)"},
+    {U"Please enter bytes as hex digits, e.g. 4F 0A.",
+     U"Introduzca los bytes en dígitos hexadecimales, p. ej. 4F 0A."},
+    {U"Go to Offset",
+     U"Ir a la posición"},
+    {U"Offset (hex):",
+     U"Posición (hex):"},
+    {U"Please enter a hexadecimal number.",
+     U"Introduzca un número hexadecimal."},
 };
 
 // The help text (Help > Keyboard and Mouse)
@@ -777,6 +797,15 @@ static const std::vector<u32> HELP = {
     U"  En modo Vim: Ctrl+W s v w h j k l c o q + - < > = _ | T,",
     U"  gt gT y :split :vsplit :new :close :only :resize",
     U"  :tabnew :tabclose :tabnext :tabprevious :tabmove :tabs.",
+    U"",
+    U"MODO HEXADECIMAL",
+    U"  Opciones > Modo hexadecimal (o edith --hex) muestra los bytes",
+    U"  del archivo en hexadecimal y como caracteres; los archivos",
+    U"  binarios se abren automáticamente en este modo. Los dígitos",
+    U"  hexadecimales cambian los bytes, Tab pasa a los caracteres.",
+    U"  Insert cambia entre sobrescribir e insertar, Supr y Retroceso",
+    U"  borran bytes, Ctrl+F busca texto o bytes hex, Ctrl+G salta a",
+    U"  una posición (hexadecimal).",
     U"",
     U"MODO VIM",
     U"  Opciones > Modo Vim (o edith --vim) activa las teclas de",
