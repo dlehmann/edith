@@ -6,6 +6,8 @@ Write each entry on one line: the section of a version becomes the release notes
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-29
+
 ### Changed
 
 - Every window has its own tabs, shown in its top line: Window > Split Horizontally / Vertically opens a new window with an empty tab instead of showing the same file twice, Ctrl+T, F4 and Ctrl+PgDn/PgUp work on the tabs of the current window, and closing a window closes its tabs (asking to save modified files); in Vim mode `:split` still shows the same file and the tab commands work on the current window's tabs.
