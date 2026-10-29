@@ -75,15 +75,28 @@ struct View {
     bool hexChars = false;
 };
 
-struct Win {
+// A tab of a window: a buffer and what the window shows of it
+struct Tab {
     Doc* doc = nullptr;
-    View v;                    // saved while the window is not active
-    VimWinState vim;           // jump list while the window is not active
-    int x = 0, y = 0, w = 1, h = 1;  // text area including the line number column
-    int sy = -1;               // row of the window's status line, -1 = none (only one window)
+    View v;
+    VimWinState vim;
 };
 
-// The window layout of a tab page: a tree of rows and columns
+// A window: an area of the screen with its own tabs. The state of the shown tab lives in doc, v
+// and vim (tabs[cur] keeps only its doc up to date); v and vim are saved while the window is not
+// active.
+struct Win {
+    std::vector<Tab> tabs{Tab()};
+    int cur = 0;               // the shown tab
+    Doc* doc = nullptr;
+    View v;
+    VimWinState vim;           // jump list
+    int x = 0, y = 0, w = 1, h = 1;  // text area including the line number column; the tab line is at y - 1
+    void setDoc(Doc* d) { doc = tabs[size_t(cur)].doc = d; }
+    Doc* docOf(int t) const { return t == cur ? doc : tabs[size_t(t)].doc; }
+};
+
+// The window layout: a tree of rows and columns
 struct Node {
     enum { LEAF, ROWS, COLS };
     Node* parent = nullptr;
@@ -92,12 +105,6 @@ struct Node {
     std::vector<std::unique_ptr<Node>> kids;
     std::unique_ptr<Win> win;  // LEAF
     int x = 0, y = 0, w = 0, h = 0;
-};
-
-struct Tab {
-    std::unique_ptr<Node> root;
-    Win* cur = nullptr;        // active window of this tab
-    Win* prev = nullptr;       // previously active window (Ctrl-W p)
 };
 
 struct App {
@@ -122,35 +129,38 @@ struct App {
 
     // Buffers, windows and tabs (app_windows.cpp)
     std::vector<std::unique_ptr<Doc>> docs;
-    std::vector<std::unique_ptr<Tab>> tabs;
-    int curTab = 0;
+    std::unique_ptr<Node> root;  // the window layout
     Win* win = nullptr;        // the active window
+    Win* prev = nullptr;       // the previously active window (Ctrl-W p)
     Doc& doc() const { return *win->doc; }
-    Tab& tab() const { return *tabs[size_t(curTab)]; }
     // The text of a buffer (App::ed for the active one)
     Editor& textOf(Doc* d) { return d == win->doc ? ed : d->store; }
     void layoutAll();
-    void layoutNode(Node* n, int x, int y, int w, int h, bool multi);
-    std::vector<Win*> windows(int t = -1) const;  // windows of a tab (-1 = current) in screen order
+    void layoutNode(Node* n, int x, int y, int w, int h);
+    std::vector<Win*> windows() const;            // in screen order
     Node* nodeOf(Win* w) const;
-    int tabOf(Win* w) const;
-    bool shown(Doc* d, Win* except) const;        // is the buffer shown in another window?
+    int refs(Doc* d) const;                       // the number of tabs that show the buffer
+    bool shown(Doc* d, Win* except) const;        // is the buffer shown in a tab other than except's?
     void saveView();
-    void activate(Win* w);
-    bool splitWin(bool vertical, Doc* d = nullptr, u32* err = nullptr);
+    void activate(Win* w, int tab = -1);          // a window and one of its tabs (-1: its shown tab)
+    bool splitWin(bool vertical, bool empty = false, u32* err = nullptr);  // empty: a new empty buffer
     Doc* newDoc();
-    void useNewDoc();                              // the current window gets an empty buffer
-    bool confirmClose(Win* w);                     // asks to save a buffer that would be lost
+    void dropDoc(Doc* d);                          // removes a buffer that no tab shows
+    void useNewDoc();                              // the current tab gets an empty buffer
+    bool askSave();                                // asks to save the current buffer; false = Cancel
+    bool confirmCloseTab(Win* w, int t);           // asks to save a buffer that would be lost
+    bool confirmCloseWin(Win* w);                  // ... for every tab of the window
     bool closeWin(Win* w, bool force);
     bool onlyWin(bool force);
     void removeWin(Win* w);
-    void newTab(Doc* d);
-    bool closeTab(int t, bool force);
-    void gotoTab(int t);
+    void removeTab(Win* w, int t);
+    void newTab(Doc* d);                           // in the active window
+    bool closeTab(Win* w, int t, bool force);      // the last tab closes the window, the very last one exits
+    void gotoTab(int t);                           // a tab of the active window (wraps around)
     Win* neighbor(char32_t dir, int count);
     void resizeWin(bool vertical, int size, bool relative);
     void equalize(Node* n);
-    void moveToNewTab();
+    void moveToNewTab();                           // the window's tabs move into the previous window
     void openInNewTab();
 
     // Syntax highlighting
@@ -185,10 +195,10 @@ struct App {
     u32 titleOf(const Editor& e) const;  // file name and " *" when modified
     void drawEditor();
     void drawWindow(Win& w, bool active);
-    void drawWinStatus(Win& w, bool active);
     void drawSeparators(Node* n);
-    void drawTabLine();
-    std::vector<std::pair<int, int>> tabLayout() const;  // x and width of each tab label
+    void drawJunctions();
+    void drawTabLine(Win& w, bool active);
+    std::vector<std::pair<int, int>> tabLayout(Win& w);  // x and width of each tab label (0 = left out)
     int maxLineWidth() const;
     void drawStatus(const u32* status);
     void drawAll(const u32* status = nullptr, int activeMenu = -1);

@@ -59,19 +59,20 @@ Dialogs are modal: `Dialog::run()` has its own small loop that draws the applica
 ## Buffers, windows and tabs
 
 ```
-App ── tabs: Tab ── root: Node (ROWS / COLS / LEAF) ── win: Win ── doc: Doc
-                                                       View v      Editor store, highlighting, Vim marks
+App ── root: Node (ROWS / COLS / LEAF) ── win: Win ── tabs: Tab ── doc: Doc
+                                                                 View v     Editor store, highlighting, Vim marks
 ```
 
 - A `Doc` is a buffer: the text of a file and its highlighting state.
-- A `Win` shows a `Doc` with its own cursor and scroll position (`View`).
-- A `Tab` has a layout tree of rows and columns (`Node`) with windows as leaves;
-  `App::layoutAll()` computes the rectangles.
+- The screen has a layout tree of rows and columns (`Node`) with windows (`Win`) as leaves;
+  `App::layoutAll()` computes the rectangles. The first row of every window is its tab line.
+- Every window has its own tabs; a `Tab` shows a `Doc` with its own cursor and scroll position
+  (`View`). The shown tab's state lives in `Win::doc`, `Win::v` and `Win::vim`.
 
-The buffer of the active window is **checked out** into `App::ed`: all editing code and the
-Vim engine work on that one `Editor`. `App::activate()` saves the cursor of the old window,
-swaps the texts and restores the new window's view. `App::textOf(doc)` returns the text of
-any buffer; never keep a reference to `App::ed` across a window switch.
+The buffer of the active tab is **checked out** into `App::ed`: all editing code and the
+Vim engine work on that one `Editor`. `App::activate(win, tab)` saves the cursor of the old
+tab, swaps the texts and restores the new tab's view. `App::textOf(doc)` returns the text of
+any buffer; never keep a reference to `App::ed` across a switch.
 
 ## Syntax highlighting
 

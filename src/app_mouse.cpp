@@ -39,22 +39,21 @@ void App::hscrollTo(int x) {
     ed.left = std::max(0, maxLineWidth() - tw()) * pos / (tl - 1);
 }
 
-// The window whose text area or status line contains the point
+// The window whose text area or tab line contains the point
 static Win* winAt(const std::vector<Win*>& ws, int x, int y) {
-    for (Win* w : ws) {
-        int y2 = w->sy >= 0 ? w->sy : w->y + w->h - 1;
-        if (x >= w->x && x < w->x + w->w && y >= w->y && y <= y2) return w;
-    }
+    for (Win* w : ws)
+        if (x >= w->x && x < w->x + w->w && y >= w->y - 1 && y < w->y + w->h) return w;
     return nullptr;
 }
 
-// A border between windows at the point: the container and the index of the child before it
+// A border between windows at the point (a separator column or the tab line of a lower window):
+// the container and the index of the child before it
 static bool borderAt(Node* n, int x, int y, Node*& p, int& idx) {
     if (n->kind == Node::LEAF) return false;
     for (size_t i = 0; i < n->kids.size(); i++) {
         Node* c = n->kids[i].get();
         if (i + 1 < n->kids.size()) {
-            if (n->kind == Node::ROWS && y == c->y + c->h - 1 && x >= c->x && x < c->x + c->w) {
+            if (n->kind == Node::ROWS && y == c->y + c->h && x >= c->x && x < c->x + c->w) {
                 p = n;
                 idx = int(i);
                 return true;
@@ -105,7 +104,7 @@ void App::handleMouse() {
             // moving the border after child dragKid
             Node* c = dragNode->kids[size_t(dragKid)].get();
             bool rows = dragNode->kind == Node::ROWS;
-            int size = rows ? m.y - c->y + 1 : m.x - c->x;
+            int size = rows ? m.y - c->y : m.x - c->x;
             for (size_t i = 0; i < dragNode->kids.size(); i++) {
                 Node* k = dragNode->kids[i].get();
                 k->weight = rows ? k->h : k->w;
@@ -127,27 +126,27 @@ void App::handleMouse() {
         if (mi >= 0) doAct(menuLoop(mi, true));
         return;
     }
-    if (m.y == 1) {
-        auto lay = tabLayout();
-        for (size_t t = 0; t < lay.size(); t++)
-            if (m.x >= lay[t].first && m.x < lay[t].first + lay[t].second) {
-                if (m.x != lay[t].first + lay[t].second - 2) gotoTab(int(t));
-                else if (tabs.size() == 1) doAct(A_CLOSETAB);  // the × of the last tab exits
-                else closeTab(int(t), false);  // the ×
-                break;
-            }
-        return;
-    }
     if (m.y == scr.h - 1) {
         if (m.x >= 1 && m.x < 1 + int(statusHint().find(U'>')) + 1) doAct(A_HELP);
         return;
     }
+    // the tabs of a window: a click shows the tab, a click on its × closes it
+    if (m.x < scr.w - 1)
+        if (Win* w = winAt(windows(), m.x, m.y); w && m.y == w->y - 1) {
+            auto lay = tabLayout(*w);
+            for (size_t t = 0; t < lay.size(); t++)
+                if (lay[t].second && m.x >= lay[t].first && m.x < lay[t].first + lay[t].second) {
+                    if (m.x != lay[t].first + lay[t].second - 2) activate(w, int(t));
+                    else closeTab(w, int(t), false);  // the last tab closes the window, the very last one exits
+                    return;
+                }
+        }
     // borders between windows can be dragged
     Node* bp = nullptr;
     int bi = 0;
-    if (m.x < scr.w - 1 && borderAt(tab().root.get(), m.x, m.y, bp, bi)) {
-        bool statusLine = bp->kind == Node::ROWS;
-        if (statusLine)
+    if (m.x < scr.w - 1 && borderAt(root.get(), m.x, m.y, bp, bi)) {
+        bool tabLine = bp->kind == Node::ROWS;
+        if (tabLine)
             if (Win* w = winAt(windows(), m.x, m.y)) activate(w);
         layoutAll();
         dragging = 4;
@@ -158,7 +157,7 @@ void App::handleMouse() {
     if (m.x < scr.w - 1) {
         Win* w = winAt(windows(), m.x, m.y);
         if (w && w != win) activate(w);
-        if (w && m.y == w->sy) return;  // the status line of a window
+        if (w && m.y == w->y - 1) return;  // the tab line of a window
     }
     if (hexMode()) {
         int ay = areaY(), ah = areaH(scr);

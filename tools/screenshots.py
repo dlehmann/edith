@@ -184,11 +184,10 @@ def down(n):
 SCENES = {
     "main": (["-n", "inventory.py"], [down(21), "\x1b[C" * 8]),
     "menu": (["-n", "server.c"], [down(12), "\x1bo", 0.4]),
-    # three windows in the first tab (split side by side, then the right one above each other), two more tabs
+    # three windows: side by side, the right one split above each other; the left window has two tabs
     "windows": (["-O", "server.c", "inventory.py"],
-                [CTRL_T, CTRL_O, 0.3, "notes.md\r", 0.3, CTRL_T, CTRL_O, 0.3, "inventory.py\r", 0.3,
-                 CTRL_PGUP, CTRL_PGUP, 0.3, F6, ALT_W, 0.3, "\x1bh", 0.3, CTRL_O, 0.3, "notes.md\r", 0.3,
-                 down(4), F6, down(9), F6, down(17)]),
+                [CTRL_T, CTRL_O, 0.3, "notes.md\r", 0.3, CTRL_PGUP, 0.3, F6, ALT_W, 0.3, "\x1bh", 0.3,
+                 CTRL_O, 0.3, "notes.md\r", 0.3, down(4), F6, down(9), F6, down(17)]),
     "replace": (["-n", "server.c"], ["\x12", "client", "\t", "conn", 0.4]),
     "vim": (["--vim", "-n", "inventory.py"], [down(20), "V", "jjj", 0.4]),
     "markdown": (["notes.md"], [down(10)]),

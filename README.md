@@ -23,7 +23,7 @@ Spanish, Italian, Hungarian and Polish.
   nvim-treesitter, including embedded languages (HTML in PHP, JavaScript/CSS in HTML, code
   blocks in Markdown, regular expressions, ...). Languages without a grammar use a built-in
   fallback lexer.
-- **Split windows and tabs**, the same file in several windows with their own cursors.
+- **Split windows and tabs**: every window has its own tabs; Vim's `:split` shows the same file in several windows with their own cursors.
 - **Reformat Code** (F8) with the standard formatter of the language when it is installed,
   otherwise with the built-in JSON formatter or by re-indenting along the syntax tree.
 - **Vim mode** (Options > Vim Mode or `--vim`) that follows Vim's documented behavior:
@@ -40,7 +40,7 @@ Spanish, Italian, Hungarian and Polish.
 
 | | |
 |---|---|
-| ![The Options menu over a C file](docs/screenshots/menu.png) | ![Three windows and three tabs](docs/screenshots/windows.png) |
+| ![The Options menu over a C file](docs/screenshots/menu.png) | ![Three windows, the left one with two tabs](docs/screenshots/windows.png) |
 | Menus and dialogs | Split windows and tabs |
 | ![Markdown with highlighted code blocks](docs/screenshots/markdown.png) | ![Vim mode with a linewise Visual selection](docs/screenshots/vim.png) |
 | Embedded languages: code blocks in Markdown | Vim mode |
@@ -144,13 +144,16 @@ Find and Change can search for regular expressions (check box "Regular Expressio
 
 ## Windows and tabs
 
-The Window menu splits the editor horizontally or vertically, closes windows and opens and
-switches tabs; File > Close Tab closes a tab. A click activates a window, dragging a status line
-or the border between windows resizes them, and the tabs are shown in the top line, each with a
-× that closes it. In Vim mode the same works with
+Every window has its own tabs, shown in its top line. The Window menu splits the editor
+horizontally or vertically into a new window with an empty tab, closes windows, and opens and
+switches the tabs of the current window; File > Close Tab closes a tab, and the last tab of a
+window closes the window. Closing a window closes its tabs and asks to save the modified files.
+A click activates a window or switches to a tab, the × of a tab closes it, and dragging a tab
+line or the border between windows resizes them. In Vim mode the same works with
 `Ctrl-W s v n c q o w W h j k l t b p + - _ | < > = T`, `gt`, `gT` and `:split :vsplit :new
 :vnew :close :only :resize :vertical :wincmd :tabnew :tabedit :tabclose :tabonly :tabnext
-:tabprevious :tabfirst :tablast :tabmove :tabs`, `:wa :qa :wqa :xa`.
+:tabprevious :tabfirst :tablast :tabmove :tabs`, `:wa :qa :wqa :xa`; the tab commands work on
+the tabs of the current window, and `:split` shows the same file in a new window.
 
 ## Hex mode
 

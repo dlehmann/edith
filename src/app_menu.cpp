@@ -31,7 +31,7 @@ bool App::enabled(int act) const {
         case A_CUT: case A_COPY: case A_CLEAR: return S.vim ? vim.visualActive() : ed.hasSel();
         case A_PASTE: return !clip.empty() || clipboardReadable();
         case A_ONLY: case A_NEXTWIN: case A_PREVWIN: return windows().size() > 1;
-        case A_NEXTTAB: case A_PREVTAB: return tabs.size() > 1;
+        case A_NEXTTAB: case A_PREVTAB: return win->tabs.size() > 1;
     }
     return true;
 }

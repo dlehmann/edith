@@ -71,7 +71,7 @@ make test                 # unit tests (build/edith-tests) and pty end-to-end te
 | `src/app_menu.cpp` | pull-down menus, shortcuts |
 | `src/app_dialogs.cpp` | message boxes, file dialog, find/replace, file operations |
 | `src/app_mouse.cpp` | mouse handling, scroll bars, window borders, tab line |
-| `src/app_windows.cpp` | buffers (`Doc`), windows (`Win`), layout tree (`Node`), tabs (`Tab`), Vim window commands |
+| `src/app_windows.cpp` | buffers (`Doc`), layout tree (`Node`), windows (`Win`) and their tabs (`Tab`), Vim window commands |
 | `src/editor.*` | text buffer (`Editor`): editing, undo/redo, search, load/save |
 | `src/widgets.*` | dialog widgets and the modal `Dialog` |
 | `src/screen.*` | screen buffer with diff-based output, color attributes (`Col`) |
@@ -130,16 +130,22 @@ make test                 # unit tests (build/edith-tests) and pty end-to-end te
 
 ## Windows and tabs
 
-- A `Doc` is a buffer (text, undo, highlighting), a `Win` shows a `Doc` with its own cursor and
-  scroll position (`View`), a `Tab` has a layout tree of rows and columns (`Node`) with windows
-  as leaves. Several windows may show the same `Doc`; a `Doc` exists as long as a window
-  shows it (no hidden buffers).
-- The buffer of the active window is checked out into `App::ed`: all editing code and the Vim
-  engine work on `App::ed`. `App::activate()` swaps the texts when the window changes. Use
-  `App::textOf(doc)` to reach the text of any buffer and never keep references to `App::ed`
-  across a window switch. Highlighting state lives in `Doc` (`doc()` is the active one).
-- `tx() ty() th() tw()` are the geometry of the active window; `layoutAll()` computes all
-  rectangles (call it after changing the layout or the screen size).
+- A `Doc` is a buffer (text, undo, highlighting). The screen has one layout tree of rows and
+  columns (`App::root`, `Node`) with windows (`Win`) as leaves; every window has its own tabs
+  (`Win::tabs`), and a `Tab` shows a `Doc` with its own cursor and scroll position (`View`).
+  The shown tab of a window lives in `Win::doc`, `Win::v` and `Win::vim` (`tabs[cur]` keeps
+  only its `doc`; set it with `Win::setDoc()`). Several tabs may show the same `Doc` (Vim's
+  `:split`); a `Doc` exists as long as a tab shows it (no hidden buffers, `App::refs()`).
+- Splitting from the Window menu opens a new window with an empty tab; closing a window closes
+  its tabs and asks for every modified buffer that no other window shows; the last tab of a
+  window closes the window. Vim's tab commands work on the tabs of the current window.
+- The buffer of the active tab is checked out into `App::ed`: all editing code and the Vim
+  engine work on `App::ed`. `App::activate(win, tab)` swaps the texts when the window or tab
+  changes. Use `App::textOf(doc)` to reach the text of any buffer and never keep references to
+  `App::ed` across a switch. Highlighting state lives in `Doc` (`doc()` is the active one).
+- `tx() ty() th() tw()` are the geometry of the active window's text; its tab line is the row
+  above (`Win::y - 1`). `layoutAll()` computes all rectangles (call it after changing the layout
+  or the screen size).
 - Window and tab features work without Vim mode (Window menu, F6, Ctrl+W, Ctrl+T,
   Ctrl+PgUp/PgDn, mouse) and with it (Ctrl-W commands, `gt`, Ex commands through
   `VimHost::layout()`).

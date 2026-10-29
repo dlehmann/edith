@@ -15,6 +15,7 @@ struct Attr { uint8_t fg, bg; };
 // Color indexes in ANSI order (0 black, 4 blue, 6 cyan, 7 light gray, 8 dark gray, 15 white)
 namespace Col {
 const Attr TEXT{7, 4}, SEL{4, 7}, FRAME{7, 4}, TITLE{4, 7};
+const Attr TABCUR{15, 4};  // the shown tab of a window that is not active
 const Attr MENU{0, 7}, MHOT{15, 7}, MSEL{7, 0}, MSELHOT{15, 0}, MDIS{8, 7};
 const Attr STATUS{15, 6}, SHADOW{8, 0};
 const Attr DIALOG{0, 7}, INPUT{15, 4}, INPUTSEL{0, 6}, BUTTONF{15, 0};

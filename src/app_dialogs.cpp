@@ -139,24 +139,17 @@ bool App::confirmDiscardAll() {
         Doc* d = docs[i].get();
         if (!textOf(d).modified) continue;
         // show the buffer before asking
-        for (size_t t = 0; t < tabs.size() && win->doc != d; t++)
-            for (Win* w : windows(int(t)))
-                if (w->doc == d) { activate(w); break; }
-        ed.scrollTo(th(), tw());
-        int r = msgbox(U"Edith", tr(U"The file has been modified.\nDo you want to save the changes?"),
-                       {tr(U"Yes"), tr(U"No"), tr(U"Cancel")});
-        if (r == 0 && !doSave()) return false;
-        if (r != 0 && r != 1) return false;
+        for (Win* w : windows())
+            for (size_t t = 0; t < w->tabs.size() && win->doc != d; t++)
+                if (w->docOf(int(t)) == d) activate(w, int(t));
+        if (!askSave()) return false;
     }
     return true;
 }
 
 bool App::confirmDiscard() {
     if (!ed.modified || shown(&doc(), win)) return true;
-    int r = msgbox(U"Edith", tr(U"The file has been modified.\nDo you want to save the changes?"),
-                   {tr(U"Yes"), tr(U"No"), tr(U"Cancel")});
-    if (r == 0) return doSave();
-    return r == 1;
+    return askSave();
 }
 
 bool App::saveDoc(Doc* d, const std::string& path, std::string& err, bool& conv) {
@@ -252,11 +245,10 @@ void App::openFiles(const std::vector<std::string>& paths, char how) {
     // splits: the new window appears above / left, so the files are opened from the last one
     openPath(paths.back());
     for (size_t i = paths.size() - 1; i-- > 0;) {
-        if (!splitWin(how == 'O')) break;
-        useNewDoc();
+        if (!splitWin(how == 'O', true)) break;
         openPath(paths[i]);
     }
-    equalize(tab().root.get());
+    equalize(root.get());
     layoutAll();
 }
 

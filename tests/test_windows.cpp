@@ -1,4 +1,4 @@
-// Split windows and tabs, with and without Vim mode.
+// Split windows and their tabs, with and without Vim mode.
 
 #include "apptest.h"
 #include "i18n.h"
@@ -8,7 +8,8 @@
 namespace {
 
 int nwin(AppT& t) { return int(t.a().windows().size()); }
-int ntab(AppT& t) { return int(t.a().tabs.size()); }
+int ntab(AppT& t) { return int(t.a().win->tabs.size()); }  // the tabs of the active window
+int curTab(AppT& t) { return t.a().win->cur; }
 std::string textOf(AppT& t, Win* w) {
     Editor& e = t.a().textOf(w->doc);
     std::string r;
@@ -46,27 +47,31 @@ TEST(tab_close_f4) {
     CHECK(t.a().quit);
 }
 
-TEST(win_split_horizontally_shares_the_buffer) {
+TEST(win_split_opens_an_empty_tab) {
     AppT t("one\ntwo");
     t.keys(alt('w') + alt('h'));  // Window > Split Horizontally
     CHECK_EQ(nwin(t), 2);
     std::vector<Win*> ws = t.a().windows();
     CHECK(ws[0] == t.a().win);  // the new window is above and active
-    CHECK_EQ(ws[0]->doc, ws[1]->doc);
+    CHECK(ws[0]->doc != ws[1]->doc);
+    CHECK_EQ(ws[0]->tabs.size(), size_t(1));
+    CHECK_EQ(t.text(), "");
     CHECK(ws[0]->y < ws[1]->y);
-    CHECK(ws[0]->sy >= 0 && ws[1]->sy >= 0);  // every window has a status line
-    CHECK(t.row(ws[0]->sy).find("Untitled") != std::string::npos);
-    t.keys("X");  // both windows show the change
-    CHECK_EQ(t.text(), "Xone\ntwo");
-    CHECK(t.row(ws[1]->y).find("Xone") != std::string::npos);
-    CHECK(t.row(ws[0]->sy).find("Untitled *") != std::string::npos);
+    CHECK(t.row(ws[0]->y - 1).find("Untitled") != std::string::npos);  // every window has a tab line
+    CHECK(t.row(ws[1]->y - 1).find("Untitled") != std::string::npos);
+    t.keys("X");  // only the new window changes
+    CHECK_EQ(t.text(), "X");
+    CHECK_EQ(textOf(t, ws[1]), "one\ntwo");
+    CHECK(t.row(ws[1]->y).find("one") != std::string::npos);
+    CHECK(t.row(ws[0]->y - 1).find("Untitled *") != std::string::npos);
+    CHECK(t.row(ws[1]->y - 1).find("Untitled *") == std::string::npos);
 }
 
 TEST(win_separate_cursors_and_scrolling) {
     std::string s;
     for (int i = 0; i < 100; i++) s += (i ? "\n" : "") + std::to_string(i);
     AppT t(s);
-    t.keys(alt('w') + alt('h'));
+    t.a().splitWin(false);  // the same buffer in two windows (Vim's :split)
     t.keys("\x1b[1;5F");  // Ctrl+End in the top window
     CHECK_EQ(t.cur().y, 99);
     t.keys(F6);  // the other window still shows the start
@@ -88,7 +93,9 @@ TEST(win_split_vertically_and_separator) {
     CHECK_EQ(ws[0]->y, ws[1]->y);
     int sep = ws[0]->x + ws[0]->w;
     CHECK_EQ(t.a().scr.buf[size_t(5 * t.a().scr.w + sep)].ch, char32_t(U'│'));
+    CHECK_EQ(t.a().scr.buf[size_t(1 * t.a().scr.w + sep)].ch, char32_t(U'┬'));  // the separator meets the tab lines
     CHECK(t.row(ws[1]->y).find("abc") != std::string::npos);
+    CHECK(t.row(ws[0]->y).substr(0, size_t(sep)).find("abc") == std::string::npos);
 }
 
 TEST(win_nested_splits_and_close) {
@@ -99,22 +106,132 @@ TEST(win_nested_splits_and_close) {
     CHECK_EQ(nwin(t), 3);
     t.keys(alt('w') + alt('o'));  // Close Other Windows
     CHECK_EQ(nwin(t), 1);
-    CHECK_EQ(t.a().win->sy, -1);  // a single window has no status line
+    CHECK_EQ(t.a().win->y, 2);  // a single window: its tab line is the top line of the frame
     CHECK_EQ(t.a().docs.size(), size_t(1));
 }
 
 TEST(win_close_asks_for_modified_buffer) {
     AppT t("a");
     t.keys(alt('w') + alt('h') + "X");
-    t.keys(ctrl('w'));  // the other window still shows the buffer: no question
-    CHECK_EQ(nwin(t), 1);
-    CHECK_EQ(t.text(), "Xa");
-    t.keys(ctrl('t'));  // a second tab, then back
-    t.keys(CPGUP + ctrl('w') + RIGHT + RIGHT + "\r");  // the last window of the buffer: Cancel
-    CHECK_EQ(ntab(t), 2);
+    t.keys(ctrl('w') + RIGHT + RIGHT + "\r");  // modified: Cancel
+    CHECK_EQ(nwin(t), 2);
     t.keys(ctrl('w') + RIGHT + "\r");  // No: the window and the changes go away
-    CHECK_EQ(ntab(t), 1);
+    CHECK_EQ(nwin(t), 1);
+    CHECK_EQ(t.text(), "a");
+    CHECK_EQ(t.a().docs.size(), size_t(1));
     CHECK(!t.a().quit);
+    t.a().splitWin(false);  // the same buffer in two windows: no question
+    t.keys("Y" + ctrl('w'));
+    CHECK_EQ(nwin(t), 1);
+    CHECK_EQ(t.text(), "Ya");
+}
+
+TEST(win_close_closes_its_tabs) {
+    AppT t("orig");
+    t.keys(alt('w') + alt('v'));
+    t.keys("1" + ctrl('t') + ctrl('t') + "3");  // three tabs, two of them modified
+    CHECK_EQ(ntab(t), 3);
+    CHECK_EQ(t.a().docs.size(), size_t(4));
+    t.keys(ctrl('w') + RIGHT + "\r" + RIGHT + RIGHT + "\r");  // the first: No, the third: Cancel
+    CHECK_EQ(nwin(t), 2);
+    CHECK_EQ(ntab(t), 3);
+    CHECK_EQ(curTab(t), 2);  // the tab that is asked for is shown
+    t.keys(ctrl('w') + RIGHT + "\r" + RIGHT + "\r");  // No, No
+    CHECK_EQ(nwin(t), 1);
+    CHECK_EQ(ntab(t), 1);
+    CHECK_EQ(t.text(), "orig");
+    CHECK_EQ(t.a().docs.size(), size_t(1));
+}
+
+TEST(win_close_other_windows_closes_their_tabs) {
+    AppT t("keep");
+    t.keys(alt('w') + alt('v') + ctrl('t') + "x");  // the new window: two tabs, one modified
+    t.keys(F6);
+    t.keys(alt('w') + alt('o') + RIGHT + RIGHT + "\r");  // Close Other Windows: Cancel
+    CHECK_EQ(nwin(t), 2);
+    t.keys(F6 + std::string(F6));
+    CHECK_EQ(t.text(), "keep");
+    t.keys(alt('w') + alt('o') + RIGHT + "\r");  // No
+    CHECK_EQ(nwin(t), 1);
+    CHECK_EQ(t.text(), "keep");
+    CHECK_EQ(t.a().docs.size(), size_t(1));
+}
+
+TEST(tab_last_tab_closes_the_window) {
+    AppT t("a");
+    t.keys(alt('w') + alt('h'));
+    CHECK_EQ(nwin(t), 2);
+    t.keys(F4);  // the only tab of the new window
+    CHECK_EQ(nwin(t), 1);
+    CHECK(!t.a().quit);
+    CHECK_EQ(t.text(), "a");
+    std::vector<Win*> ws;
+    t.keys(alt('w') + alt('v'));
+    ws = t.a().windows();
+    auto lay = t.a().tabLayout(*ws[1]);  // the × in the tab line of the other window
+    t.keys(click(lay[0].first + lay[0].second - 2, ws[1]->y - 1));
+    CHECK_EQ(nwin(t), 1);
+    CHECK_EQ(t.text(), "");
+}
+
+TEST(tabs_per_window) {
+    AppT t("right");
+    t.keys(alt('w') + alt('v'));
+    t.keys("L1" + ctrl('t') + "L2" + ctrl('t') + "L3");
+    std::vector<Win*> ws = t.a().windows();
+    CHECK_EQ(ws[0]->tabs.size(), size_t(3));
+    CHECK_EQ(ws[1]->tabs.size(), size_t(1));
+    t.draw();
+    CHECK(t.row(1).find("3 Unt") != std::string::npos);
+    CHECK(t.row(1).find("right") == std::string::npos);
+    t.keys(CPGDN);  // switches only between the tabs of the window
+    CHECK_EQ(t.text(), "L1");
+    t.keys(CPGUP + std::string(CPGUP));
+    CHECK_EQ(t.text(), "L2");
+    t.keys(F6);
+    CHECK_EQ(t.text(), "right");
+    CHECK(!t.a().enabled(A_NEXTTAB));
+    t.keys(F6);
+    CHECK_EQ(t.text(), "L2");  // the window keeps its shown tab
+    // a click on a tab of the other window shows it there and activates the window
+    t.keys(F6);
+    auto lay = t.a().tabLayout(*ws[0]);
+    t.keys(click(lay[0].first + 1, 1));
+    CHECK(t.a().win == ws[0]);
+    CHECK_EQ(t.text(), "L1");
+    // the shown tab of the window that is not active is bright, the other tabs are not
+    t.keys(F6);
+    CHECK_EQ(int(t.cell(lay[0].first + 1, 1).fg), int(Col::TABCUR.fg));
+    CHECK_EQ(int(t.cell(lay[1].first + 1, 1).fg), int(Col::FRAME.fg));
+}
+
+TEST(tab_shown_tab_stays_visible) {
+    AppT t("x");
+    for (int i = 0; i < 19; i++) t.keys(ctrl('t'));
+    CHECK_EQ(ntab(t), 20);
+    auto lay = t.a().tabLayout(*t.a().win);
+    CHECK(lay[19].second > 0);  // the last tab is shown, the first ones are left out
+    CHECK_EQ(lay[0].second, 0);
+    CHECK(t.row(1).find("20") != std::string::npos);
+    t.keys(CPGDN);  // the first tab again
+    lay = t.a().tabLayout(*t.a().win);
+    CHECK_EQ(lay[0].first, 2);
+    t.keys(click(lay[0].first + lay[0].second - 2, 1));  // its × closes it
+    CHECK_EQ(ntab(t), 19);
+}
+
+TEST(win_tab_lines_meet_the_separators) {
+    AppT t("x");
+    t.keys(alt('w') + alt('v') + alt('w') + alt('h'));  // left: two windows, right: one
+    std::vector<Win*> ws = t.a().windows();
+    CHECK_EQ(ws.size(), size_t(3));
+    const Screen& s = t.a().scr;
+    auto ch = [&](int x, int y) { return s.buf[size_t(y * s.w + x)].ch; };
+    int sep = ws[0]->x + ws[0]->w, ty = ws[1]->y - 1;
+    CHECK_EQ(ch(sep, 1), char32_t(U'┬'));
+    CHECK_EQ(ch(sep, ty), char32_t(U'┤'));
+    CHECK_EQ(ch(0, ty), char32_t(U'├'));
+    CHECK_EQ(ch(sep, ty + 1), char32_t(U'│'));
 }
 
 TEST(win_open_in_split_keeps_the_other_window) {
@@ -127,8 +244,8 @@ TEST(win_open_in_split_keeps_the_other_window) {
     CHECK_EQ(textOf(t, ws[0]), "file text");
     CHECK_EQ(textOf(t, ws[1]), "first");
     CHECK_EQ(t.a().docs.size(), size_t(2));
-    CHECK(t.row(ws[1]->sy).find("Untitled") != std::string::npos);
-    CHECK(t.row(ws[0]->sy).find("win_open.txt") != std::string::npos);
+    CHECK(t.row(ws[1]->y - 1).find("Untitled") != std::string::npos);
+    CHECK(t.row(ws[0]->y - 1).find("win_open.txt") != std::string::npos);
     t.keys(alt('f') + alt('n'));  // File > New also keeps the other window
     CHECK_EQ(textOf(t, t.a().windows()[1]), "first");
 }
@@ -148,15 +265,16 @@ TEST(win_mouse_activate_and_resize) {
     CHECK(t.a().win == ws[1]);
     CHECK_EQ(t.cur(), Pos({0, 2}));
     int h0 = ws[0]->h;
-    int sy = ws[0]->sy;
-    t.keys(click(5, sy) + click(5, sy - 4, 32) + click(5, sy - 4, 0, true));  // drag the status line up
+    int sy = ws[1]->y - 1;
+    t.keys(click(5, sy) + click(5, sy - 4, 32) + click(5, sy - 4, 0, true));  // drag the tab line up
     CHECK_EQ(ws[0]->h, h0 - 4);
-    t.keys(alt('w') + alt('v'));
+    CHECK(t.a().win == ws[1]);  // the window of the dragged tab line
+    t.keys(alt('w') + alt('v'));  // splits the lower window
     ws = t.a().windows();
-    int sep = ws[0]->x + ws[0]->w;
-    int w0 = ws[0]->w;
-    t.keys(click(sep, ws[0]->y) + click(sep + 6, ws[0]->y, 32) + click(sep + 6, ws[0]->y, 0, true));
-    CHECK_EQ(t.a().windows()[0]->w, w0 + 6);
+    int sep = ws[1]->x + ws[1]->w;
+    int w0 = ws[1]->w;
+    t.keys(click(sep, ws[1]->y) + click(sep + 6, ws[1]->y, 32) + click(sep + 6, ws[1]->y, 0, true));
+    CHECK_EQ(t.a().windows()[1]->w, w0 + 6);
 }
 
 TEST(win_key_during_border_drag) {
@@ -205,7 +323,7 @@ TEST(win_open_files_from_command_line) {
         t.a().openFiles({a, b, c}, 't');
         t.draw();
         CHECK_EQ(ntab(t), 3);
-        CHECK_EQ(t.a().curTab, 0);
+        CHECK_EQ(curTab(t), 0);
         CHECK_EQ(t.text(), "A");
         CHECK(t.row(1).find("1 wa.txt") != std::string::npos);
         CHECK(t.row(1).find("3 wc.txt") != std::string::npos);
@@ -228,7 +346,7 @@ TEST(tab_new_switch_close) {
     AppT t("first");
     t.keys(ctrl('t'));
     CHECK_EQ(ntab(t), 2);
-    CHECK_EQ(t.a().curTab, 1);
+    CHECK_EQ(curTab(t), 1);
     CHECK_EQ(t.text(), "");
     CHECK(t.row(1).find("1 Untitled") != std::string::npos);
     CHECK(t.row(1).find("2 Untitled") != std::string::npos);
@@ -239,9 +357,9 @@ TEST(tab_new_switch_close) {
     CHECK_EQ(t.text(), "second");
     t.keys(CPGDN);  // wraps around
     CHECK_EQ(t.text(), "first");
-    auto lay = t.a().tabLayout();
+    auto lay = t.a().tabLayout(*t.a().win);
     t.keys(click(lay[1].first + 1, 1));
-    CHECK_EQ(t.a().curTab, 1);
+    CHECK_EQ(curTab(t), 1);
     t.keys(alt('f') + alt('l') + RIGHT + "\r");  // Close Tab: modified, "No"
     CHECK_EQ(ntab(t), 1);
     CHECK_EQ(t.text(), "first");
@@ -252,15 +370,15 @@ TEST(tab_close_by_click_on_x) {
     AppT t("first");
     t.keys(ctrl('t') + "second" + ctrl('t'));
     CHECK_EQ(ntab(t), 3);
-    auto lay = t.a().tabLayout();
+    auto lay = t.a().tabLayout(*t.a().win);
     const Screen& s = t.a().scr;
     for (auto& [x, len] : lay) CHECK(s.buf[size_t(s.w + x + len - 2)].ch == U'×');
     t.keys(click(lay[2].first + lay[2].second - 2, 1));  // unmodified: closes at once
     CHECK_EQ(ntab(t), 2);
-    lay = t.a().tabLayout();
+    lay = t.a().tabLayout(*t.a().win);
     t.keys(click(lay[1].first + lay[1].second - 2, 1) + RIGHT + RIGHT + "\r");  // modified: Cancel
     CHECK_EQ(ntab(t), 2);
-    CHECK_EQ(t.a().curTab, 1);
+    CHECK_EQ(curTab(t), 1);
     t.keys(CPGUP);
     t.keys(click(lay[1].first + lay[1].second - 2, 1) + RIGHT + "\r");  // an inactive tab, "No"
     CHECK_EQ(ntab(t), 1);
@@ -270,7 +388,7 @@ TEST(tab_close_by_click_on_x) {
 TEST(tab_close_by_click_on_x_last_tab) {
     AppT t("");
     t.keys("text");
-    auto lay = t.a().tabLayout();
+    auto lay = t.a().tabLayout(*t.a().win);
     CHECK_EQ(lay.size(), size_t(1));
     const Screen& s = t.a().scr;
     int x = lay[0].first + lay[0].second - 2;
@@ -288,16 +406,6 @@ TEST(tab_close_in_file_menu) {
     for (auto& it : MENUS[4].items) inWindow |= it.act == A_CLOSETAB;
     CHECK(inFile);
     CHECK(!inWindow);
-}
-
-TEST(tab_active_window_per_tab) {
-    AppT t("a");
-    t.keys(alt('w') + alt('h') + F6);  // tab 1: two windows, the second is active
-    Win* w1 = t.a().win;
-    t.keys(ctrl('t') + "b");
-    t.keys(CPGUP);
-    CHECK(t.a().win == w1);
-    CHECK_EQ(nwin(t), 2);
 }
 
 TEST(tab_open_in_new_tab) {
@@ -341,8 +449,9 @@ TEST(tab_menu_enabled_states) {
     CHECK(!t.a().enabled(A_NEXTWIN));
     t.keys(ctrl('t'));
     CHECK(t.a().enabled(A_NEXTTAB));
-    t.keys(alt('w') + alt('v'));
+    t.keys(alt('w') + alt('v'));  // the new window has one tab
     CHECK(t.a().enabled(A_NEXTWIN));
+    CHECK(!t.a().enabled(A_NEXTTAB));
 }
 
 TEST(win_menu_texts_german) {
@@ -500,29 +609,29 @@ TEST(vimwin_tabs) {
     CHECK_EQ(ntab(t), 2);
     t.keys("itwo" + std::string(ESC) + ":tabe\r");
     CHECK_EQ(ntab(t), 3);
-    CHECK_EQ(t.a().curTab, 2);
+    CHECK_EQ(curTab(t), 2);
     t.keys("gt");
-    CHECK_EQ(t.a().curTab, 0);
+    CHECK_EQ(curTab(t), 0);
     t.keys("gT");
-    CHECK_EQ(t.a().curTab, 2);
+    CHECK_EQ(curTab(t), 2);
     t.keys("2gt");
-    CHECK_EQ(t.a().curTab, 1);
+    CHECK_EQ(curTab(t), 1);
     CHECK_EQ(t.text(), "two");
     t.keys(":tabn 1\r");
-    CHECK_EQ(t.a().curTab, 0);
+    CHECK_EQ(curTab(t), 0);
     t.keys(":tabp\r");
-    CHECK_EQ(t.a().curTab, 2);
+    CHECK_EQ(curTab(t), 2);
     t.keys(":tabfirst\r");
-    CHECK_EQ(t.a().curTab, 0);
+    CHECK_EQ(curTab(t), 0);
     t.keys(":tablast\r");
-    CHECK_EQ(t.a().curTab, 2);
+    CHECK_EQ(curTab(t), 2);
     t.keys(":tabmove 0\r");
-    CHECK_EQ(t.a().curTab, 0);
+    CHECK_EQ(curTab(t), 0);
     CHECK_EQ(t.text(), "");
     t.keys(":tabmove\r");
-    CHECK_EQ(t.a().curTab, 2);
+    CHECK_EQ(curTab(t), 2);
     t.keys("\x1b[6;5~");  // Ctrl+PageDown
-    CHECK_EQ(t.a().curTab, 0);
+    CHECK_EQ(curTab(t), 0);
     t.keys(":tabs\r" + std::string(ESC));
     t.keys(":tabclose\r");  // like Vim: the tab page on the right becomes the current one
     CHECK_EQ(ntab(t), 2);
@@ -591,6 +700,21 @@ TEST(vimwin_status_lines_show_modes_only_in_active) {
     CHECK_EQ(int(t.cell(x0, ws[0]->y).bg), int(Col::SEL.bg));   // Visual selection in the active window
     CHECK_EQ(int(t.cell(x1, ws[1]->y).bg), int(Col::TEXT.bg));  // not in the other one
     t.keys(ESC);
+}
+
+TEST(vimwin_tabs_belong_to_the_window) {
+    AppT t("one");
+    S.vim = true;
+    t.keys(":vs\r:tabnew\r");
+    std::vector<Win*> ws = t.a().windows();
+    CHECK_EQ(ws[0]->tabs.size(), size_t(2));
+    CHECK_EQ(ws[1]->tabs.size(), size_t(1));
+    t.keys(":tabs\r" + std::string(ESC));
+    t.keys(ctrl('w') + "l" + "gt");  // one tab: stays
+    CHECK_EQ(t.text(), "one");
+    t.keys(ctrl('w') + "h:tabclose\r:tabclose\r");  // the last tab of a window closes the window
+    CHECK_EQ(nwin(t), 1);
+    CHECK_EQ(t.text(), "one");
 }
 
 TEST(vimwin_jumplist_per_window) {

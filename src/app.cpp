@@ -129,14 +129,20 @@ void App::doAct(int a) {
             break;
         case A_SPLIT: case A_VSPLIT: {
             u32 err;
-            if (!splitWin(a == A_VSPLIT, nullptr, &err)) error(err);
+            if (!splitWin(a == A_VSPLIT, true, &err)) error(err);
             break;
         }
         case A_CLOSEWIN: closeWin(win, false); break;
-        case A_ONLY:
-            for (Win* w : windows())
-                if (w != win && confirmClose(w)) removeWin(w);
+        case A_ONLY: {
+            Win* keep = win;
+            for (Win* w : windows()) {
+                if (w == keep) continue;
+                if (!confirmCloseWin(w)) break;
+                removeWin(w);
+            }
+            activate(keep);
             break;
+        }
         case A_NEXTWIN: case A_PREVWIN: {
             std::vector<Win*> ws = windows();
             size_t i = std::find(ws.begin(), ws.end(), win) - ws.begin();
@@ -145,16 +151,10 @@ void App::doAct(int a) {
         }
         case A_NEWTAB: newTab(nullptr); break;
         case A_OPENTAB: openInNewTab(); break;
-        case A_CLOSETAB:
-            if (tabs.size() == 1) {
-                if (confirmDiscardAll()) quit = true;
-            } else {
-                closeTab(curTab, false);
-            }
-            break;
+        case A_CLOSETAB: closeTab(win, win->cur, false); break;
         case A_FORMAT: reformatCode(); break;
-        case A_NEXTTAB: gotoTab(curTab + 1); break;
-        case A_PREVTAB: gotoTab(curTab - 1); break;
+        case A_NEXTTAB: gotoTab(win->cur + 1); break;
+        case A_PREVTAB: gotoTab(win->cur - 1); break;
         case A_UNDO: ed.doUndo(); break;
         case A_REDO: ed.doRedo(); break;
         case A_CUT:

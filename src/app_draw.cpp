@@ -128,18 +128,10 @@ u32 App::titleOf(const Editor& e) const {
     return name + (e.modified ? U" *" : U"");
 }
 
-void App::drawWinStatus(Win& w, bool active) {
-    // the status line of a window (only with several windows)
-    if (w.sy < 0) return;
-    Attr a = active ? Col::TITLE : Col::FRAME;
-    scr.fill(w.x, w.sy, w.w, a, active ? U' ' : U'─');
-    scr.text(w.x + 1, w.sy, U" " + titleOf(textOf(w.doc)) + U" ", active ? Col::TITLE : Col::FRAME, w.w - 2);
-}
-
 void App::drawWindow(Win& w, bool active) {
     if (w.doc->hex) {
         drawHexWindow(w, active);
-        drawWinStatus(w, active);
+        drawTabLine(w, active);
         return;
     }
     Doc& d = *w.doc;
@@ -215,7 +207,7 @@ void App::drawWindow(Win& w, bool active) {
         drawLine(x0, v.left, width, y, l, s, en, cls, S.vim && !hlSpans.empty() ? &hlSpans : nullptr,
                  li + 1 < nl ? (e.crlf ? 2 : 1) : 0);
     }
-    drawWinStatus(w, active);
+    drawTabLine(w, active);
 }
 
 void App::drawSeparators(Node* n) {
@@ -228,65 +220,104 @@ void App::drawSeparators(Node* n) {
     }
 }
 
-std::vector<std::pair<int, int>> App::tabLayout() const {
-    std::vector<std::pair<int, int>> r;
-    int n = int(tabs.size());
+// Where the separators between windows meet the tab lines: ┬ ┴ ├ ┤ ┼
+void App::drawJunctions() {
+    int W = scr.w, H = scr.h;
+    std::vector<uint8_t> m(size_t(W * H), 0);  // 1 = a tab line, 2 = a separator
+    auto at = [&](int x, int y) { return x >= 0 && y >= 0 && x < W && y < H ? m[size_t(y * W + x)] : 0; };
+    std::vector<Win*> ws = windows();
+    for (Win* w : ws)
+        for (int x = w->x; x < w->x + w->w && w->y - 1 < H; x++)
+            if (x >= 0 && x < W && w->y >= 1) m[size_t((w->y - 1) * W + x)] = 1;
+    std::vector<Node*> todo{root.get()};
+    while (!todo.empty()) {
+        Node* n = todo.back();
+        todo.pop_back();
+        for (size_t i = 0; i < n->kids.size(); i++) {
+            Node* c = n->kids[i].get();
+            todo.push_back(c);
+            int x = c->x + c->w;
+            if (n->kind == Node::COLS && i + 1 < n->kids.size() && x < W)
+                for (int y = std::max(0, n->y); y < std::min(H, n->y + n->h); y++) m[size_t(y * W + x)] = 2;
+        }
+    }
+    for (int y = 1; y < H - 2; y++)
+        for (int x = 1; x < W - 1; x++) {
+            int k = m[size_t(y * W + x)];
+            bool u = at(x, y - 1) == 2, d = at(x, y + 1) == 2;
+            if (k == 2) {
+                bool l = at(x - 1, y) == 1, r = at(x + 1, y) == 1;
+                char32_t c = u && d ? (l && r ? U'┼' : l ? U'┤' : r ? U'├' : U'│')
+                             : d    ? (l && r ? U'┬' : l ? U'┐' : r ? U'┌' : U'│')
+                             : u    ? (l && r ? U'┴' : l ? U'┘' : r ? U'└' : U'│')
+                                    : U'│';
+                scr.put(x, y, c, Col::FRAME);
+            } else if (k == 1 && scr.buf[size_t(y * W + x)].ch == U'─' && (u || d)) {
+                scr.put(x, y, u && d ? U'┼' : u ? U'┴' : U'┬', Col::FRAME);
+            }
+        }
+    // the tab lines of the lower windows meet the left frame line
+    for (Win* w : ws)
+        if (w->x == 1 && w->y - 1 > 1) scr.put(0, w->y - 1, U'├', Col::FRAME);
+}
+
+std::vector<std::pair<int, int>> App::tabLayout(Win& w) {
+    int n = int(w.tabs.size());
+    std::vector<std::pair<int, int>> r(size_t(n), {0, 0});
     if (n == 1) {  // one tab: its file name in the middle of the line
-        int len = std::min(strWidth(titleOf(ed)) + 4, scr.w - 4);
-        r.push_back({(scr.w - len) / 2, len});
+        int len = std::min(strWidth(titleOf(textOf(w.doc))) + 4, std::max(1, w.w - 2));
+        r[0] = {w.x + (w.w - len) / 2, len};
         return r;
     }
-    int avail = scr.w - 4;
-    int each = std::max(5, n ? avail / n : avail);
-    int x = 2;
-    for (int t = 0; t < n; t++) {
-        Win* w = tabs[size_t(t)]->cur;
-        const Editor& e = w->doc == win->doc ? ed : w->doc->store;
-        int len = strWidth(fmtU("%d ", t + 1) + titleOf(e)) + 4;  // " 1 name × "
-        len = std::min(len, each);
-        r.push_back({x, len});
-        x += len + 1;
+    int avail = w.w - 2;
+    int each = std::max(5, (avail - (n - 1)) / n);
+    std::vector<int> len(static_cast<size_t>(n));
+    for (int t = 0; t < n; t++)
+        len[size_t(t)] = std::min(each, strWidth(fmtU("%d ", t + 1) + titleOf(textOf(w.docOf(t)))) + 4);  // " 1 name × "
+    // when not all tabs fit, the first ones are left out so that the shown tab is visible
+    int first = 0;
+    auto width = [&](int a, int b) {
+        int s = 0;
+        for (int t = a; t <= b; t++) s += len[size_t(t)] + (t > a);
+        return s;
+    };
+    while (first < w.cur && width(first, w.cur) > avail) first++;
+    int x = w.x + 1;
+    for (int t = first; t < n; t++) {
+        if (x + len[size_t(t)] > w.x + w.w - 1) break;
+        r[size_t(t)] = {x, len[size_t(t)]};
+        x += len[size_t(t)] + 1;
     }
     return r;
 }
 
-void App::drawTabLine() {
-    int W = scr.w;
-    scr.put(0, 1, U'┌', Col::FRAME);
-    scr.fill(1, 1, W - 2, Col::FRAME, U'─');
-    scr.put(W - 1, 1, U'┐', Col::FRAME);
-    auto lay = tabLayout();
-    for (size_t t = 0; t < tabs.size(); t++) {
-        Win* w = tabs[t]->cur;
-        const Editor& e = w->doc == win->doc ? ed : w->doc->store;
-        u32 label = U" " + fmtU("%d ", int(t) + 1) + titleOf(e) + U" ";
+void App::drawTabLine(Win& w, bool active) {
+    int y = w.y - 1;
+    scr.fill(w.x, y, w.w, Col::FRAME, U'─');
+    auto lay = tabLayout(w);
+    for (size_t t = 0; t < lay.size(); t++) {
+        u32 num = w.tabs.size() > 1 ? fmtU("%d ", int(t) + 1) : u32();
+        u32 label = U" " + num + titleOf(textOf(w.docOf(int(t)))) + U" ";
         int x = lay[t].first, len = lay[t].second;
-        if (x + len > W - 2) break;
-        Attr a = int(t) == curTab ? Col::TITLE : Col::FRAME;
-        scr.fill(x, 1, len, a);
-        scr.text(x, 1, label, a, len - 2);
-        scr.put(x + len - 2, 1, U'×', a);  // a click closes the tab
+        if (len < 3) continue;  // left out
+        // the shown tab of the active window, the shown tab of another window, the hidden tabs
+        Attr a = int(t) != w.cur ? Col::FRAME : active ? Col::TITLE : Col::TABCUR;
+        scr.fill(x, y, len, a);
+        scr.text(x, y, label, a, len - 2);
+        scr.put(x + len - 2, y, U'×', a);  // a click closes the tab
     }
 }
 
 void App::drawEditor() {
     int W = scr.w, H = scr.h;
     layoutAll();
-    if (tabs.size() > 1) {
-        drawTabLine();
-    } else {
-        scr.put(0, 1, U'┌', Col::FRAME);
-        scr.fill(1, 1, W - 2, Col::FRAME, U'─');
-        scr.put(W - 1, 1, U'┐', Col::FRAME);
-        auto [x, len] = tabLayout()[0];
-        scr.text(x, 1, U" " + titleOf(ed) + U" ", Col::TITLE, len - 2);
-        scr.put(x + len - 2, 1, U'×', Col::TITLE);
-        scr.put(x + len - 1, 1, U' ', Col::TITLE);
-    }
+    scr.put(0, 1, U'┌', Col::FRAME);
+    scr.put(W - 1, 1, U'┐', Col::FRAME);
     int ay = 2, ah = std::max(1, H - 4);
     for (int r = 0; r < ah; r++) scr.put(0, ay + r, U'│', Col::FRAME);
     for (Win* w : windows()) drawWindow(*w, w == win);
-    drawSeparators(tab().root.get());
+    drawSeparators(root.get());
+    drawJunctions();
 
     // vertical scroll bar (active window)
     long nl = ed.n(), top = ed.top;

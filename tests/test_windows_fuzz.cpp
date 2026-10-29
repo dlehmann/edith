@@ -18,33 +18,31 @@ static const char* const OPS[] = {
 
 static bool consistent(AppT& t, std::string& why) {
     App& a = t.a();
-    if (a.tabs.empty()) { why = "no tabs"; return false; }
-    if (a.curTab < 0 || a.curTab >= int(a.tabs.size())) { why = "curTab"; return false; }
-    bool winFound = false;
+    std::vector<Win*> ws = a.windows();
+    if (ws.empty()) { why = "no windows"; return false; }
+    if (std::find(ws.begin(), ws.end(), a.win) == ws.end()) { why = "active window not in the layout"; return false; }
+    if (a.prev && std::find(ws.begin(), ws.end(), a.prev) == ws.end()) { why = "previous window"; return false; }
     std::vector<Doc*> used;
-    for (size_t ti = 0; ti < a.tabs.size(); ti++) {
-        std::vector<Win*> ws = a.windows(int(ti));
-        if (ws.empty()) { why = "empty tab"; return false; }
-        bool curOk = false;
-        for (Win* w : ws) {
-            curOk |= w == a.tabs[ti]->cur;
-            winFound |= w == a.win;
+    for (Win* w : ws) {
+        if (w->tabs.empty()) { why = "window without tabs"; return false; }
+        if (w->cur < 0 || w->cur >= int(w->tabs.size())) { why = "shown tab"; return false; }
+        if (w->tabs[size_t(w->cur)].doc != w->doc) { why = "shown tab and buffer differ"; return false; }
+        for (size_t i = 0; i < w->tabs.size(); i++) {
+            Doc* d = w->docOf(int(i));
             bool docOk = false;
-            for (auto& d : a.docs) docOk |= d.get() == w->doc;
-            if (!docOk) { why = "window without buffer"; return false; }
-            used.push_back(w->doc);
-            bool small = a.scr.w < 60 || a.scr.h < 20;  // tiny terminals may cut windows off
-            if (!small && (w->x < 1 || w->y < 2 || w->x + w->w > a.scr.w - 1 || w->h < 1)) {
-                why = "window rectangle";
-                return false;
-            }
-            if (w->h < 1 || w->w < 1) { why = "empty window"; return false; }
+            for (auto& o : a.docs) docOk |= o.get() == d;
+            if (!docOk) { why = "tab without buffer"; return false; }
+            used.push_back(d);
         }
-        if (!curOk) { why = "tab without current window"; return false; }
+        bool small = a.scr.w < 60 || a.scr.h < 20;  // tiny terminals may cut windows off
+        if (!small && (w->x < 1 || w->y < 2 || w->x + w->w > a.scr.w - 1 || w->h < 1)) {
+            why = "window rectangle";
+            return false;
+        }
+        if (w->h < 1 || w->w < 1) { why = "empty window"; return false; }
     }
-    if (!winFound) { why = "active window not in a tab"; return false; }
     for (auto& d : a.docs)
-        if (std::find(used.begin(), used.end(), d.get()) == used.end()) { why = "buffer without window"; return false; }
+        if (std::find(used.begin(), used.end(), d.get()) == used.end()) { why = "buffer without tab"; return false; }
     Editor& e = a.ed;
     if (e.lines.empty() || e.cy < 0 || e.cy >= e.n() || e.cx < 0 || e.cx > int(e.lines[size_t(e.cy)].size())) {
         why = "cursor";

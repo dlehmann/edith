@@ -254,7 +254,7 @@ def test_windows_and_tabs(binary, tmp):
     try:
         s = e.screen.text()
         check("windows: both files shown", "alpha text" in s and "beta text" in s, s[:400])
-        check("windows: status lines", "win_a.txt" in s and "win_b.txt" in s)
+        check("windows: tab lines", "win_a.txt" in s and "win_b.txt" in s)
         e.send("\x1b[17~")  # F6
         e.send("X")
         check("windows: F6 switches", "Xbeta text" in e.screen.text())
@@ -281,6 +281,22 @@ def test_windows_and_tabs(binary, tmp):
         check("vim windows: side by side", s.count("alpha text") == 2, s[:600])
         e.send(":qa\r")
         check("vim: :qa exits", e.wait_exit())
+    finally:
+        e.kill()
+    e = Edit(binary, ["--lang=en", a])
+    try:
+        e.send("\x1bw", 0.3)
+        e.send("\x1bv", 0.4)  # Window > Split Vertically: a new window with an empty tab
+        e.send("new")
+        s = e.screen.text()
+        check("split: new empty tab", "Untitled *" in s and s.count("alpha text") == 1 and "new" in s, s[:600])
+        e.send("\x17", 0.4)  # Ctrl+W closes the window and asks for its modified tab
+        check("split: close asks", "Do you want to save the changes?" in e.screen.text())
+        e.send("\x1b[C\r")  # No
+        s = e.screen.text()
+        check("split: window closed", "Untitled" not in s and "alpha text" in s, s[:600])
+        e.send("\x11")
+        check("split: exit", e.wait_exit())
     finally:
         e.kill()
 
