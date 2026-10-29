@@ -191,6 +191,8 @@ SCENES = {
     "replace": (["-n", "server.c"], ["\x12", "client", "\t", "conn", 0.4]),
     "vim": (["--vim", "-n", "inventory.py"], [down(20), "V", "jjj", 0.4]),
     "markdown": (["notes.md"], [down(10)]),
+    # a binary file opens in hex mode
+    "hex": (["icon.png"], [down(3), "\x1b[C" * 9, 0.4]),
 }
 
 

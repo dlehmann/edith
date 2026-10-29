@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Edith – a friendly text editor for the terminal</title>
-<meta name="description" content="Edith is a text editor for Linux and macOS terminals in the spirit of MS-DOS EDIT: menus, mouse, split windows and tabs, tree-sitter syntax highlighting for 50+ languages and an optional Vim mode.">
+<meta name="description" content="Edith is a text editor for Linux and macOS terminals in the spirit of MS-DOS EDIT: menus, mouse, split windows and tabs, tree-sitter syntax highlighting for 50+ languages, a hex mode and an optional Vim mode.">
 <meta property="og:title" content="Edith – a friendly text editor for the terminal">
-<meta property="og:description" content="Menus, mouse, split windows and tabs, tree-sitter highlighting for 50+ languages and an optional Vim mode.">
+<meta property="og:description" content="Menus, mouse, split windows and tabs, tree-sitter highlighting for 50+ languages, a hex mode and an optional Vim mode.">
 <meta property="og:image" content="screenshots/main.png">
 <link rel="icon" href="edith.svg" type="image/svg+xml">
 <style>
@@ -221,7 +221,8 @@
       <p class="lead">
         Pull-down menus, dialogs and the mouse, like the classic MS-DOS <code>EDIT</code> –
         with split windows and tabs, syntax highlighting for more than 50 languages, code
-        formatting and an optional, faithful Vim mode. One program, nothing to configure.
+        formatting, a hex mode for binary files and an optional, faithful Vim mode. One program,
+        nothing to configure.
       </p>
       <div class="actions">
         <a class="button primary" href="#install">Install</a>
@@ -298,6 +299,21 @@
           </div>
           <img class="shot" src="screenshots/replace.png" width="1700" height="990" loading="lazy"
                alt="The Change dialog of Edith for finding and replacing text">
+        </div>
+
+        <div class="feature">
+          <div class="text">
+            <h3>Hex mode</h3>
+            <p>Binary files open as bytes in hex and as characters. Options &gt; Hex Mode (or
+              <code>edith --hex</code>) switches any file.</p>
+            <ul>
+              <li>overwrite or insert bytes, undo and redo</li>
+              <li><kbd>Tab</kbd> switches between the hex digits and the characters</li>
+              <li><kbd>Ctrl+F</kbd> finds text or hex bytes, <kbd>Ctrl+G</kbd> goes to an offset</li>
+            </ul>
+          </div>
+          <img class="shot" src="screenshots/hex.png" width="1700" height="990" loading="lazy"
+               alt="A PNG file in hex mode: offsets, the bytes in hex and as characters">
         </div>
       </div>
     </div>
