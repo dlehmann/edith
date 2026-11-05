@@ -36,7 +36,7 @@ jobs:
 
   build:
     needs: grammars
-    runs-on: macos-14  # Apple Silicon
+    runs-on: macos-15  # Apple Silicon
     env:
       # runs on every Mac with Apple Silicon (macOS 11 Big Sur was the first for them)
       MACOSX_DEPLOYMENT_TARGET: "11.0"
