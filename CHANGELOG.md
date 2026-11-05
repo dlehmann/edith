@@ -6,6 +6,8 @@ Write each entry on one line: the section of a version becomes the release notes
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-05
+
 ### Added
 
 - Word wrap (Options > Word Wrap, in Vim mode `:set wrap`, off by default): long lines continue on the next screen rows, broken at blanks (`:set nolinebreak` breaks inside words); ↑/↓, PgUp/PgDn, the mouse wheel and clicks work by screen rows.
