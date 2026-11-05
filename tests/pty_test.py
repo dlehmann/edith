@@ -509,6 +509,37 @@ def test_hex_option(binary, tmp):
         e.kill()
 
 
+def test_wrap_and_margin(binary, tmp):
+    """Options > Word Wrap and Options > Right Margin in German and English."""
+    f = os.path.join(tmp, "wrap.txt")
+    words = " ".join("wort%d" % (i % 10) for i in range(30))
+    with open(f, "w") as out:
+        out.write(words + "\nende\n")
+    for lang, wrap, col, margin in (("de", "u", "p", "Rechter Rand nach Spalte"),
+                                    ("en", "w", "c", "Right margin after column")):
+        e = Edit(binary, ["--lang=" + lang, f])
+        try:
+            rows = e.screen.text().split("\n")
+            check(lang + ": no wrap", rows[3].startswith("│ende"), e.screen.text())
+            e.send("\x1bo")
+            e.send("\x1b" + wrap)
+            rows = e.screen.text().split("\n")
+            check(lang + ": word wrap", rows[2].startswith("│wort0 wort1") and rows[3].startswith("│wort")
+                  and rows[5].startswith("│ende"), e.screen.text())
+            e.send("\x1bo")
+            e.send("\x1b" + col)
+            e.send("\x7f\x7f40\r")
+            rows = e.screen.text().split("\n")
+            check(lang + ": right margin", rows[6][41:42] == "│" and rows[5][41:42] == "│", e.screen.text())
+            # drag it to column 50 with the mouse (button 0 pressed, moved, released)
+            e.send("\x1b[<0;42;8M\x1b[<32;52;8M\x1b[<0;52;8m")
+            rows = e.screen.text().split("\n")
+            check(lang + ": margin dragged", rows[6][51:52] == "│" and margin + " 50" in rows[24],
+                  e.screen.text())
+        finally:
+            e.kill()
+
+
 def test_third_party_licenses():
     """THIRD_PARTY_LICENSES (made for the binary packages) contains the license text of every
     component in third_party/, and every packaging script ships it."""
@@ -535,7 +566,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         for t in (test_plain_english, test_plain_german, test_vim_english, test_vim_german_and_menu_toggle,
                   test_windows_and_tabs, test_reformat, test_terminals, test_escdelay, test_job_control,
-                  test_binary_file, test_hex_option, test_clipboard_osc52):
+                  test_binary_file, test_hex_option, test_clipboard_osc52, test_wrap_and_margin):
             t(binary, tmp)
         test_languages(binary)
     test_cli(binary)

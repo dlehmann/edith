@@ -6,6 +6,11 @@ Write each entry on one line: the section of a version becomes the release notes
 
 ## [Unreleased]
 
+### Added
+
+- Word wrap (Options > Word Wrap, in Vim mode `:set wrap`, off by default): long lines continue on the next screen rows, broken at blanks (`:set nolinebreak` breaks inside words); ↑/↓, PgUp/PgDn, the mouse wheel and clicks work by screen rows.
+- Right margin (Options > Right Margin, in Vim mode `:set colorcolumn=81`, off by default): a vertical line after column 80 that is drawn only where there is no text (the characters it crosses are not highlighted); drag it with the mouse or set its column with Options > Right Margin Column.
+
 ## [1.4.0] - 2026-10-29
 
 ### Changed

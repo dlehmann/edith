@@ -27,9 +27,45 @@ void App::vscrollTo(int y) {
         return;
     }
     ed.top = std::max(0, nl - th()) * pos / (tl - 1);
+    ed.topRow = 0;
     ed.anch = false;
-    ed.cy = std::clamp(ed.cy, ed.top, std::min(nl - 1, ed.top + th() - 1));
+    cursorIntoView();
     ed.clampCursor();
+}
+
+void App::cursorIntoView() {
+    int w = Editor::wrapWidth(tw());
+    int lo = ed.top, hi = ed.top, r = ed.topRow;
+    ed.stepRows(hi, r, th() - 1, w);
+    if (w && ed.topRow > 0 && lo < hi) lo++;  // the first rows of line top are hidden
+    ed.cy = std::clamp(ed.cy, lo, std::max(lo, hi));
+}
+
+void App::textPos(int row, int col, int& ly, int& lx) const {
+    int w = Editor::wrapWidth(tw());
+    int r = ed.topRow;
+    ly = ed.top;
+    ed.stepRows(ly, r, row, w);
+    lx = ed.idxAtRow(ly, r, (w ? 0 : ed.left) + col, w);
+}
+
+bool App::onMargin(int x, int y) const {
+    if (hexMode() || x != marginX(tx(), Editor::wrapWidth(tw()) ? 0 : ed.left, tw()) || y < ty() || y >= ty() + th())
+        return false;
+    // only where the line is drawn: after the end of the text in this row
+    int w = Editor::wrapWidth(tw());
+    int ly = ed.top, r = ed.topRow;
+    int moved = ed.stepRows(ly, r, y - ty(), w);
+    if (moved < y - ty()) return true;  // below the end of the text
+    std::vector<int> rows = ed.wrapRows(ed.lines[size_t(ly)], w);
+    const u32& l = ed.lines[size_t(ly)];
+    int from = rows[size_t(r)], to = r + 1 < int(rows.size()) ? rows[size_t(r) + 1] : int(l.size());
+    return ed.colOf(l, to) - (w ? ed.colOf(l, from) : 0) <= S.margin;
+}
+
+void App::setMargin(int col) {
+    S.margin = std::clamp(col, 1, MAX_MARGIN);
+    notify(fmtU(trs("Right margin after column %d").c_str(), S.margin), false);
 }
 
 void App::hscrollTo(int x) {
@@ -77,25 +113,27 @@ void App::handleMouse() {
             hexWheel(3 * m.wheel);
             return;
         }
-        int nl = ed.n();
-        ed.top = std::clamp(ed.top + 3 * m.wheel, 0, std::max(0, nl - th()));
+        ed.scrollRows(3 * m.wheel, th(), Editor::wrapWidth(tw()));
         return;
     }
     if (m.release) { dragging = 0; dragNode = nullptr; return; }
     if (m.motion) {
         if (m.btn != 0) return;
-        int nl = ed.n();
         if (dragging == 1 && hexMode()) {
             hexMouseAt(m.x, m.y, true);
         } else if (dragging == 1) {
             int row = m.y - ty(), col = m.x - tx();
-            if (row < 0) { ed.top = std::max(0, ed.top - 1); row = 0; }
-            else if (row >= th()) { ed.top = std::min(ed.top + 1, std::max(0, nl - th())); row = th() - 1; }
-            if (col < 0) { ed.left = std::max(0, ed.left - 1); col = 0; }
-            else if (col >= tw()) { ed.left++; col = tw() - 1; }
-            int ly = std::min(ed.top + row, nl - 1);
-            ed.setCursor(ly, ed.idxOf(ed.lines[size_t(ly)], ed.left + col), true);
+            bool wrap = Editor::wrapWidth(tw());
+            if (row < 0) { ed.scrollRows(-1, th(), Editor::wrapWidth(tw())); row = 0; }
+            else if (row >= th()) { ed.scrollRows(1, th(), Editor::wrapWidth(tw())); row = th() - 1; }
+            if (col < 0) { ed.left = std::max(0, ed.left - (wrap ? 0 : 1)); col = 0; }
+            else if (col >= tw()) { ed.left += wrap ? 0 : 1; col = tw() - 1; }
+            int ly, lx;
+            textPos(row, col, ly, lx);
+            ed.setCursor(ly, lx, true);
             ed.wantCol = -1;
+        } else if (dragging == 5) {
+            setMargin((Editor::wrapWidth(tw()) ? 0 : ed.left) + m.x - tx());
         } else if (dragging == 2) {
             vscrollTo(m.y);
         } else if (dragging == 3) {
@@ -173,15 +211,21 @@ void App::handleMouse() {
     }
     int nl = ed.n();
     if (gutter() && m.y >= ty() && m.y < ty() + th() && m.x >= win->x && m.x < tx()) {
-        int ly = std::min(ed.top + m.y - ty(), nl - 1);
+        int ly, lx;
+        textPos(m.y - ty(), 0, ly, lx);
         ed.setCursor(ly, 0, false);
         ed.setCursor(ly + 1 < nl ? ly + 1 : ly, ly + 1 < nl ? 0 : int(ed.lines[size_t(ly)].size()), true);
         dragging = 1;
         return;
     }
+    if (onMargin(m.x, m.y)) {  // the right margin can be dragged
+        dragging = 5;
+        setMargin(S.margin);
+        return;
+    }
     if (m.y >= ty() && m.y < ty() + th() && m.x >= tx() && m.x < tx() + tw()) {
-        int ly = std::min(ed.top + m.y - ty(), nl - 1);
-        int lx = ed.idxOf(ed.lines[size_t(ly)], ed.left + m.x - tx());
+        int ly, lx;
+        textPos(m.y - ty(), m.x - tx(), ly, lx);
         auto now = Clock::now();
         if (lastClickP == Pos{ly, lx} && now - lastClickT < std::chrono::milliseconds(400)) {
             ed.selectWord(ly, lx);
@@ -198,12 +242,12 @@ void App::handleMouse() {
     }
     int ay = areaY(), ah = areaH(scr);
     if (m.x == scr.w - 1 && m.y >= ay && m.y < ay + ah) {
-        if (m.y == ay) ed.top = std::max(0, ed.top - 1);
-        else if (m.y == ay + ah - 1) ed.top = std::min(std::max(0, nl - th()), ed.top + 1);
+        if (m.y == ay) ed.scrollRows(-1, th(), Editor::wrapWidth(tw()));
+        else if (m.y == ay + ah - 1) ed.scrollRows(1, th(), Editor::wrapWidth(tw()));
         else { vscrollTo(m.y); dragging = 2; }
         return;
     }
-    if (m.y == scr.h - 2 && m.x >= 1 && m.x <= scr.w - 2) {
+    if (m.y == scr.h - 2 && m.x >= 1 && m.x <= scr.w - 2 && !S.wrap) {
         if (m.x == 1) ed.left = std::max(0, ed.left - 1);
         else if (m.x == scr.w - 2) ed.left++;
         else { hscrollTo(m.x); dragging = 3; }

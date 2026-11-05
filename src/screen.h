@@ -25,6 +25,7 @@ constexpr uint8_t DIMBLACK = 16;  // black at 30 % over the blue background; els
 const Attr GUTTER{7, DIMBLACK}, GUTTERCUR{15, DIMBLACK};  // the line numbers, the cursor line bright
 const Attr SEARCH{0, 6}, ERRMSG{15, 1};
 const Attr INVIS{8, 4}, ZEROW{15, 5};  // invisible characters shown (Options > Show Invisible Characters)
+const Attr MARGIN{8, 4};              // the right margin (Options > Right Margin)
 }  // namespace Col
 
 // One character cell. The right half of a wide character has ch == 0.

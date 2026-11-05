@@ -79,12 +79,16 @@ static char32_t invisibleSymbol(char32_t ch) {
 }
 
 void App::drawLine(int x0, int left, int width, int y, const u32& l, int s, int e, const uint8_t* cls,
-                   const std::vector<std::pair<int, int>>* hl, int eol) {
+                   const std::vector<std::pair<int, int>>* hl, int eol, int from, int to) {
     int right = left + width;
     int col = 0;
     bool inv = S.invisibles, zeroW = false;  // zeroW: a zero-width character precedes this cell
     size_t i = 0;
-    for (; i < l.size(); i++) {
+    if (from > 0) {  // a row of a wrapped line: it starts at column left
+        i = size_t(std::min(from, int(l.size())));
+        col = left;
+    }
+    for (; i < l.size() && int(i) < to; i++) {
         char32_t ch = l[i];
         int w = ch == '\t' ? S.tabw - col % S.tabw : cw(ch);
         char32_t sym = inv ? invisibleSymbol(ch) : 0;
@@ -140,6 +144,7 @@ void App::drawWindow(Win& w, bool active) {
     if (active) {
         v.cy = ed.cy;
         v.top = ed.top;
+        v.topRow = ed.topRow;
         v.left = ed.left;
     } else {
         v = w.v;
@@ -162,18 +167,36 @@ void App::drawWindow(Win& w, bool active) {
         uint32_t ve = last < nl ? d.tsd.ls[size_t(last)] : uint32_t(d.tsd.text.size());
         d.tsd.highlight(vs, ve, d.tsVis);
     }
-    for (int r = 0; r < w.h; r++) {
+    int ww = Editor::wrapWidth(width);  // soft wrap: the width of the rows, else 0
+    if (ww) v.left = 0;
+    int li = v.top, sub = ww ? v.topRow : 0;  // the line and its screen row shown in the next row
+    std::vector<int> rows{0};
+    if (ww && li < nl) {
+        rows = e.wrapRows(e.lines[size_t(li)], ww);
+        sub = std::clamp(sub, 0, int(rows.size()) - 1);
+    }
+    for (int r = 0; r < w.h; r++, sub++) {
         int y = w.y + r;
+        if (ww && li < nl && sub >= int(rows.size())) {  // the next line
+            li++;
+            sub = 0;
+            if (li < nl) rows = e.wrapRows(e.lines[size_t(li)], ww);
+        } else if (!ww) {  // one row per line
+            li = v.top + r;
+            sub = 0;
+        }
         scr.fill(w.x, y, w.w, Col::TEXT);
-        int li = v.top + r;
         if (g) {
             scr.fill(w.x, y, g - 1, Col::GUTTER);
-            if (li < nl) {
+            if (li < nl && sub == 0) {
                 int num = (S.lineNums == 2 && li != v.cy) ? std::abs(li - v.cy) : li + 1;
                 scr.text(w.x, y, fmtU("%*d", g - 2, num), li == v.cy ? Col::GUTTERCUR : Col::GUTTER);
             }
         }
-        if (li >= nl) continue;
+        if (li >= nl) {
+            drawMargin(x0, v.left, width, y, 0);
+            continue;
+        }
         int s = -1, en = -1;
         if (S.vim) {
             if (!active || !vim.visualSpan(li, s, en)) s = en = -1;
@@ -204,10 +227,34 @@ void App::drawWindow(Win& w, bool active) {
             }
             cls = hlBuf.data();
         }
-        drawLine(x0, v.left, width, y, l, s, en, cls, S.vim && !hlSpans.empty() ? &hlSpans : nullptr,
-                 li + 1 < nl ? (e.crlf ? 2 : 1) : 0);
+        int from = 0, to = INT_MAX, left = v.left;
+        if (ww) {
+            from = rows[size_t(sub)];
+            to = sub + 1 < int(rows.size()) ? rows[size_t(sub) + 1] : INT_MAX;
+            left = e.colOf(l, from);
+        }
+        drawLine(x0, left, width, y, l, s, en, cls, S.vim && !hlSpans.empty() ? &hlSpans : nullptr,
+                 li + 1 < nl ? (e.crlf ? 2 : 1) : 0, from, to);
+        // with soft wrap every row starts at column 0
+        int end = ww ? left : 0;  // the column after the text of the row
+        for (int k = from; k < std::min(to, int(l.size())); k++)
+            end += l[size_t(k)] == '\t' ? S.tabw - end % S.tabw : cw(l[size_t(k)]);
+        drawMargin(x0, ww ? 0 : left, width, y, ww ? end - left : end);
     }
     drawTabLine(w, active);
+}
+
+int App::marginX(int x0, int left, int width) const {
+    if (!S.showMargin) return -1;
+    int c = S.margin - left;
+    return c >= 0 && c < width ? x0 + c : -1;
+}
+
+void App::drawMargin(int x0, int left, int width, int y, int end) {
+    int x = marginX(x0, left, width);
+    if (x < 0) return;
+    // only after the text (the characters it crosses keep their colors), not on a selected line break
+    if (S.margin >= end && scr.buf[size_t(y * scr.w + x)].bg == Col::TEXT.bg) scr.put(x, y, U'│', Col::MARGIN);
 }
 
 void App::drawSeparators(Node* n) {
@@ -443,12 +490,8 @@ void App::placeCursor() {
         scr.cshape = vim.cursorShape();
         return;
     }
-    int r = ed.cy - ed.top;
-    int c = ed.colOf(ed.lines[ed.cy], ed.cx) - ed.left;
-    // in Normal mode the cursor is shown on the last column of a tab
-    if (S.vim && vim.mode != VM_INSERT && vim.mode != VM_REPLACE && ed.cx < int(ed.lines[ed.cy].size()) &&
-        ed.lines[ed.cy][size_t(ed.cx)] == '\t')
-        c = ed.colOf(ed.lines[ed.cy], ed.cx + 1) - 1 - ed.left;
+    int r, c;
+    cursorCell(r, c);
     if (!tooSmall() && r >= 0 && r < th() && c >= 0 && c < tw()) {
         scr.cvis = true;
         scr.cx = tx() + c;
@@ -456,6 +499,17 @@ void App::placeCursor() {
         scr.cshape = S.overwrite ? 1 : 3;  // block cursor when overwriting, underline when inserting
         if (S.vim) scr.cshape = vim.cursorShape();
     }
+}
+
+void App::cursorCell(int& r, int& c) const {
+    int w = Editor::wrapWidth(tw()), sub;
+    ed.rowCol(ed.cy, ed.cx, w, sub, c);
+    // in Normal mode the cursor is shown on the last column of a tab
+    if (S.vim && vim.mode != VM_INSERT && vim.mode != VM_REPLACE && ed.cx < int(ed.lines[ed.cy].size()) &&
+        ed.lines[ed.cy][size_t(ed.cx)] == '\t')
+        c += ed.colOf(ed.lines[ed.cy], ed.cx + 1) - ed.colOf(ed.lines[ed.cy], ed.cx) - 1;
+    c -= w ? 0 : ed.left;
+    r = ed.rowFromTop(ed.cy, sub, w, th());
 }
 
 void App::dropRect(int mi, int& x, int& y, int& w, int& h) const {

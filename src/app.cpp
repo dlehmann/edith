@@ -188,6 +188,14 @@ void App::doAct(int a) {
         case A_LINENUM: S.lineNums = S.lineNums == 1 ? 0 : 1; break;
         case A_RELNUM: S.lineNums = S.lineNums == 2 ? 0 : 2; break;
         case A_INVISIBLES: S.invisibles = !S.invisibles; break;
+        case A_WRAP: S.wrap = !S.wrap; break;
+        case A_MARGIN: S.showMargin = !S.showMargin; break;
+        case A_MARGINCOL: {
+            int v = numberDialog(tr(U"Right Margin"), tr(U"Right margin after column:"), S.margin);
+            if (v >= 1 && v <= MAX_MARGIN) S.margin = v, S.showMargin = true;
+            else if (v != -1) error(tr(U"Please enter a number from 1 to 999."));
+            break;
+        }
         case A_LANG: langDialog(); break;
         case A_ABOUT: {
             char about[512];
@@ -235,7 +243,9 @@ void App::doAct(int a) {
 }
 
 void App::handleKey(const Key& k) {
-    if (k.code != K_NONE && k.code != K_TIMEOUT && k.code != K_RESIZE && !(k.code == K_MOUSE && g_mouse.motion))
+    // (moving or releasing the mouse keeps it: dragging the right margin shows its column)
+    if (k.code != K_NONE && k.code != K_TIMEOUT && k.code != K_RESIZE &&
+        !(k.code == K_MOUSE && (g_mouse.motion || g_mouse.release)))
         statusMsg.clear();
     // a key ends a drag: it may close or rearrange windows and so free the node dragNode points to
     if (k.code != K_MOUSE && k.code != K_NONE && k.code != K_RESIZE) {
@@ -247,8 +257,7 @@ void App::handleKey(const Key& k) {
             handleMouse();
             if (S.vim && !hexMode()) {
                 // like Vim: scrolling with the wheel keeps the cursor in the view
-                if (g_mouse.wheel)
-                    ed.cy = std::clamp(ed.cy, ed.top, std::max(ed.top, std::min(ed.n() - 1, ed.top + th() - 1)));
+                if (g_mouse.wheel) cursorIntoView();
                 vim.afterExternal();
             }
             return;
@@ -297,7 +306,7 @@ void App::handleKey(const Key& k) {
     switch (k.code) {
         case K_UP: case K_DOWN: case K_LEFT: case K_RIGHT:
         case K_HOME: case K_END: case K_PGUP: case K_PGDN:
-            ed.moveKey(k.code, k.mods, th());
+            ed.moveKey(k.code, k.mods, th(), tw());
             break;
         case K_ENTER: ed.newline(); break;
         case K_BKSP:

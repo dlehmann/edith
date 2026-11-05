@@ -92,6 +92,18 @@ any buffer; never keep a reference to `App::ed` across a switch.
 - Capture names are mapped to a few highlight classes (`tsCaptureClass()`, `H_*` in
   `languages.h`), and the classes to the 16 colors (`HLCOL`).
 
+## Soft wrap and the right margin
+
+With Options > Word Wrap (`S.wrap`) a line is drawn in several screen rows. `Editor::wrapRows()`
+computes where the rows of a line start (at blanks with `S.linebreak`); it is computed on demand
+and never stored, so editing needs no extra bookkeeping. The view then starts at row
+`Editor::topRow` of line `Editor::top` and `left` stays 0. `rowCol()`, `idxAtRow()`,
+`stepRows()`, `rowFromTop()` and `scrollRows()` translate between text positions and screen rows;
+`scrollTo()`, the cursor keys (`moveKey()` with the view width), the mouse (`App::textPos()`) and
+`App::cursorCell()` use them. Without soft wrap the same functions treat every line as one row.
+The right margin (`S.showMargin`, `S.margin`) is drawn per row by `App::drawMargin()` after the
+text; `App::onMargin()` decides where it can be grabbed with the mouse.
+
 ## The Vim engine
 
 `Vim` (`vim.h`) works on an `Editor` and a `VimHost`. Keys are code points (`VK` namespace);

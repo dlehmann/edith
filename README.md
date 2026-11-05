@@ -32,6 +32,8 @@ Spanish, Italian, Hungarian and Polish.
 - **Hex mode** (Options > Hex Mode or `--hex`) for binary files, which open in it
   automatically: the bytes in hex and as characters, overwrite and insert, undo, Find for text
   or hex bytes, Go to Offset.
+- **Word wrap** (Options > Word Wrap) and a **right margin** (Options > Right Margin): a
+  vertical line after column 80 that can be dragged with the mouse or set to any column.
 - Files are kept in their format: UTF-8 or Latin-1, LF or CRLF, with or without BOM. Saving
   replaces a file only after the new text has been written completely.
 - Works in any terminal with 16 colors; true color terminals get the original CGA palette.
@@ -206,8 +208,8 @@ behavior:
 - Ex commands with ranges: `:s` (all flags, `\1 & ~ \u \U \r`), `:g`/`:v`, `:normal`, `:d :y
   :pu :m :t :j :> :<`, `:w :q :wq :x :e :r :sav :up`, `:sort`, `:retab`, `:left :center
   :right`, `:!` filters, `:r !cmd`, `:w !cmd`, `:set` (`ts sw et ai nu rnu ic scs ws hls tw nf
-  cb ...`), `:map`/`:noremap` for every mode with `<Leader>` and timeouts, `:registers`,
-  `:marks`, `:jumps`, `:changes`, `:undo`, `:redo`
+  cb list wrap lbr cc ...`), `:map`/`:noremap` for every mode with `<Leader>` and timeouts,
+  `:registers`, `:marks`, `:jumps`, `:changes`, `:undo`, `:redo`
 - Insert mode keys `Ctrl+W Ctrl+U Ctrl+T Ctrl+D Ctrl+R Ctrl+A Ctrl+V Ctrl+K Ctrl+N Ctrl+P
   Ctrl+E Ctrl+Y`, autoindent and `'textwidth'`
 

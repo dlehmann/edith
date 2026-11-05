@@ -353,7 +353,7 @@ void App::replaceDialog() {
         ed.anchor = s;
         ed.cy = e.y; ed.cx = e.x;
         ed.scrollTo(th(), tw(), true);
-        int row = ty() + s.y - ed.top;
+        int row = ty() + ed.rowFromTop(s.y, 0, Editor::wrapWidth(tw()), th());
         int dy = row > scr.h / 2 ? 2 : scr.h - 9;
         int ans =
             msgbox(tr(U"Change"), tr(U"Change this occurrence?"), {tr(U"Change"), tr(U"Skip"), tr(U"Cancel")}, dy);

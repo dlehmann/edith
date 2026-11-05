@@ -22,6 +22,7 @@ bool App::enabled(int act) const {
             // the text options and commands do not apply to bytes
             case A_FORMAT: case A_REPLACE: case A_AUTOINDENT: case A_EXPANDTAB: case A_TABWIDTH:
             case A_LINENUM: case A_RELNUM: case A_INVISIBLES: case A_SYNTAX: case A_LANG: case A_VIM:
+            case A_WRAP: case A_MARGIN: case A_MARGINCOL:
                 return false;
         }
     }
@@ -46,6 +47,8 @@ bool App::checked(int act) const {
         case A_LINENUM: return S.lineNums == 1;
         case A_RELNUM: return S.lineNums == 2;
         case A_INVISIBLES: return S.invisibles;
+        case A_WRAP: return S.wrap;
+        case A_MARGIN: return S.showMargin;
         case A_VIM: return S.vim;
     }
     return false;

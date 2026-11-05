@@ -312,12 +312,34 @@ void Editor::wordRight(int& y, int& x) const {
     while (x < int(l.size()) && !isWord(l[x])) x++;
 }
 
-void Editor::moveKey(int code, int mods, int th) {
+void Editor::moveKey(int code, int mods, int th, int tw) {
     bool s = mods & M_SHIFT, c = mods & M_CTRL;
     int y = cy, x = cx;
     const u32& l = lines[y];
     bool vert = false;
     int col = 0;
+    int w = wrapWidth(tw);
+    if (w && (code == K_UP || code == K_DOWN || code == K_PGUP || code == K_PGDN)) {
+        // soft wrap: by screen rows, the column is kept within the rows
+        int r;
+        rowCol(y, x, w, r, col);
+        if (wantCol >= 0) col = wantCol;
+        if (c && (code == K_UP || code == K_DOWN)) {  // scroll the view
+            scrollRows(code == K_UP ? -1 : 1, th, w);
+            int row = rowFromTop(y, r, w, th);
+            if (row >= 0 && row < th) return;
+            y = top;
+            r = topRow;
+            if (row >= 0) stepRows(y, r, th - 1, w);
+        } else {
+            int d = code == K_UP ? -1 : code == K_DOWN ? 1 : code == K_PGUP ? -(th - 1) : th - 1;
+            int moved = stepRows(y, r, d, w);
+            if (code == K_PGUP || code == K_PGDN) scrollRows(moved, th, w);
+        }
+        setCursor(y, idxAtRow(y, r, col, w), s);
+        wantCol = col;
+        return;
+    }
     switch (code) {
         case K_LEFT:
             if (c) wordLeft(y, x);
@@ -365,12 +387,144 @@ void Editor::moveKey(int code, int mods, int th) {
 
 void Editor::scrollTo(int th, int tw, bool center) {
     clampCursor();
+    int w = wrapWidth(tw);
+    if (w) {
+        left = 0;
+        top = std::clamp(top, 0, n() - 1);
+        topRow = std::clamp(topRow, 0, rowCount(top, w) - 1);
+        int r, c;
+        rowCol(cy, cx, w, r, c);
+        int row = rowFromTop(cy, r, w, th);
+        if (row >= 0 && row < th) return;
+        // the cursor row at the top, in the middle (center) or at the bottom of the view
+        int y = cy, tr = r;
+        if (row >= 0 || center) stepRows(y, tr, center ? -(th / 2) : -(th - 1), w);
+        top = y;
+        topRow = tr;
+        return;
+    }
+    topRow = 0;
     if (center && (cy < top || cy >= top + th)) top = std::max(0, cy - th / 2);
     if (cy < top) top = cy;
     else if (cy >= top + th) top = cy - th + 1;
     int col = colOf(lines[cy], cx);
     if (col < left) left = col;
     else if (col >= left + tw) left = col - tw + 1;
+}
+
+std::vector<int> Editor::wrapRows(const u32& l, int w) const {
+    std::vector<int> rows{0};
+    if (w <= 0) return rows;
+    int col = 0, rowCol = 0;  // the column of the character and the column where the row starts
+    int brk = -1, brkCol = 0;  // the index after the last blank in the row and its column
+    for (int i = 0; i < int(l.size()); i++) {
+        char32_t ch = l[size_t(i)];
+        int cwid = ch == '\t' ? S.tabw - col % S.tabw : cw(ch);
+        if (cwid == 0) continue;  // a zero-width character stays with the one before
+        bool blank = ch == ' ' || ch == '\t';
+        while (col + cwid - rowCol > w && i > rows.back()) {
+            if (S.linebreak && !blank && brk > rows.back()) {  // the word moves to the next row
+                rows.push_back(brk);
+                rowCol = brkCol;
+            } else {
+                rows.push_back(i);
+                rowCol = col;
+            }
+            brk = -1;
+        }
+        col += cwid;
+        if (blank) { brk = i + 1; brkCol = col; }
+    }
+    if (col - rowCol >= w && rows.back() < int(l.size())) rows.push_back(int(l.size()));  // room for the cursor
+    return rows;
+}
+
+int Editor::rowCount(int y, int w) const {
+    return w ? int(wrapRows(lines[size_t(y)], w).size()) : 1;
+}
+
+void Editor::rowCol(int y, int x, int w, int& r, int& c) const {
+    const u32& l = lines[size_t(y)];
+    if (!w) {
+        r = 0;
+        c = colOf(l, x);
+        return;
+    }
+    std::vector<int> rows = wrapRows(l, w);
+    r = int(std::upper_bound(rows.begin(), rows.end(), x) - rows.begin()) - 1;
+    r = std::max(0, r);
+    c = colOf(l, x) - colOf(l, rows[size_t(r)]);
+}
+
+int Editor::idxAtRow(int y, int r, int c, int w) const {
+    const u32& l = lines[size_t(y)];
+    if (!w) return idxOf(l, c);
+    std::vector<int> rows = wrapRows(l, w);
+    r = std::clamp(r, 0, int(rows.size()) - 1);
+    int s = rows[size_t(r)];
+    int e = r + 1 < int(rows.size()) ? rows[size_t(r) + 1] - 1 : int(l.size());
+    return std::clamp(idxOf(l, colOf(l, s) + std::max(0, c)), s, std::max(s, e));
+}
+
+int Editor::stepRows(int& y, int& r, int d, int w) const {
+    int moved = 0;
+    y = std::clamp(y, 0, n() - 1);
+    if (!w) {
+        int ny = std::clamp(y + d, 0, n() - 1);
+        moved = ny - y;
+        y = ny;
+        r = 0;
+        return moved;
+    }
+    r = std::clamp(r, 0, rowCount(y, w) - 1);
+    while (d < 0) {
+        int step = std::min(-d, r);  // within the line
+        if (step) { r -= step; d += step; moved -= step; continue; }
+        if (y == 0) break;
+        y--;
+        r = rowCount(y, w) - 1;
+        d++;
+        moved--;
+    }
+    while (d > 0) {
+        int cnt = rowCount(y, w);
+        int step = std::min(d, cnt - 1 - r);
+        if (step) { r += step; d -= step; moved += step; continue; }
+        if (y == n() - 1) break;
+        y++;
+        r = 0;
+        d--;
+        moved++;
+    }
+    return moved;
+}
+
+int Editor::rowFromTop(int y, int r, int w, int limit) const {
+    if (!w) return y < top ? -1 : std::min(limit, y - top);
+    if (y < top || (y == top && r < topRow)) return -1;
+    if (y == top) return std::min(limit, r - topRow);
+    int row = rowCount(top, w) - topRow;
+    for (int k = top + 1; k < y && row < limit; k++) row += rowCount(k, w);
+    return std::min(limit, row + r);
+}
+
+void Editor::scrollRows(int d, int th, int w) {
+    if (!w) {
+        top = std::clamp(top + d, 0, std::max(0, n() - th));
+        topRow = 0;
+        return;
+    }
+    // the highest top: th - 1 rows above the last row of the text
+    int my = n() - 1, mr = rowCount(my, w) - 1;
+    stepRows(my, mr, -(th - 1), w);
+    int y = top, r = topRow;
+    stepRows(y, r, d, w);
+    if (d > 0 && (my < y || (my == y && mr < r))) {
+        y = std::max(top, my);  // never scroll back when the view is already further down
+        r = y == top ? std::max(topRow, y == my ? mr : 0) : mr;
+    }
+    top = y;
+    topRow = r;
 }
 
 bool Editor::matchAt(const u32& l, size_t i, const u32& t, bool cs, bool whole) {

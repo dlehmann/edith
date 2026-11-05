@@ -14,6 +14,10 @@ struct Settings {
     int lineNums = 0;  // 0 = off, 1 = absolute, 2 = relative to the cursor line
     bool vim = false;  // Vim key bindings (Options > Vim Mode)
     bool invisibles = false;  // show tabs, spaces, line ends and control characters (Vim's 'list')
+    bool wrap = false;        // soft wrap: long lines continue on the next screen row (Vim's 'wrap')
+    bool linebreak = true;    // ... and break at blanks instead of in the middle of a word (Vim's 'linebreak')
+    bool showMargin = false;  // the right margin: a vertical line after column margin (Vim's 'colorcolumn')
+    int margin = 80;
 };
 extern Settings S;  // the global settings
 
@@ -35,6 +39,7 @@ struct Editor {
     std::vector<u32> lines{u32()};
     int cy = 0, cx = 0;         // cursor (line, index)
     int top = 0, left = 0;      // first visible line and column
+    int topRow = 0;             // with soft wrap: the first visible screen row of line top
     bool anch = false;          // a selection exists: from anchor to the cursor
     Pos anchor;
     std::string filename;       // absolute path, "" for a new file
@@ -89,9 +94,29 @@ struct Editor {
     void wordLeft(int& y, int& x) const;
     void wordRight(int& y, int& x) const;
     // Cursor keys with modifiers; th = height of the view (for PgUp/PgDn).
-    void moveKey(int code, int mods, int th);
+    // tw = width of the view (soft wrap: Up/Down move by screen rows).
+    void moveKey(int code, int mods, int th, int tw = 0);
     // Scrolls a view of th lines and tw columns so that the cursor is visible.
     void scrollTo(int th, int tw, bool center = false);
+
+    // Soft wrap (Options > Word Wrap). A line is shown in screen rows of at most w columns; with
+    // S.linebreak a row ends after a blank where possible. A line whose last row is full gets an
+    // empty row more for the cursor at its end. w = 0 means no wrapping (one row per line).
+    std::vector<int> wrapRows(const u32& l, int w) const;  // the index where each row starts
+    int rowCount(int y, int w) const;
+    // The row of index x in line y and its column within the row
+    void rowCol(int y, int x, int w, int& r, int& c) const;
+    // The index shown at column c of row r of line y (in a row that is not the last one at most
+    // the index before the next row)
+    int idxAtRow(int y, int r, int c, int w) const;
+    // Moves the screen row (y, r) by d rows; returns the number of rows moved (with sign)
+    int stepRows(int& y, int& r, int d, int w) const;
+    // The screen row of (y, r) counted from (top, topRow): -1 before the view, at most limit
+    int rowFromTop(int y, int r, int w, int limit) const;
+    // Scrolls a view of th rows by d rows (the last page stays full)
+    void scrollRows(int d, int th, int w);
+    // The width for wrapRows() in a view of tw columns: 0 without soft wrap
+    static int wrapWidth(int tw) { return S.wrap ? std::max(1, tw) : 0; }
     // Does t occur at index i of l? cs = case-sensitive, whole = only whole words.
     static bool matchAt(const u32& l, size_t i, const u32& t, bool cs, bool whole);
 

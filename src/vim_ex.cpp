@@ -1582,6 +1582,25 @@ void Vim::exRead(int after, const u32& arg) {
     endChange();
 }
 
+// Sets the right margin from Vim's 'colorcolumn' (only its first column is shown): "" hides it,
+// "81" draws it after column 80, "+1" / "-1" after 'textwidth' + 1 / - 1 (hidden when it is 0).
+static bool setColorColumn(const std::string& v, int textwidth) {
+    std::string first = v.substr(0, v.find(','));
+    if (first.empty()) {
+        S.showMargin = false;
+        return v.empty();
+    }
+    bool rel = first[0] == '+' || first[0] == '-';
+    std::string num = rel ? first.substr(1) : first;
+    if (num.empty() || num.size() > 6 || num.find_first_not_of("0123456789") != std::string::npos) return false;
+    int n = std::stoi(num);
+    int col = rel ? (textwidth ? textwidth + (first[0] == '+' ? n : -n) : 0) : n;
+    S.showMargin = col >= 1;
+    if (col >= 2) S.margin = std::min(col - 1, 999);
+    else if (col == 1) S.showMargin = false;  // a line before the first column cannot be shown
+    return true;
+}
+
 void Vim::exSet(const u32& args) {
     struct BoolOpt { const char* name; const char* abbr; bool* p; };
     bool nu = S.lineNums == 1 || (S.lineNums == 2 && numberAlso), rnu = S.lineNums == 2;
@@ -1592,7 +1611,8 @@ void Vim::exSet(const u32& args) {
         {"wrapscan", "ws", &opt.wrapscan}, {"hlsearch", "hls", &opt.hlsearch}, {"incsearch", "is", &opt.incsearch},
         {"joinspaces", "js", &opt.joinspaces}, {"write", "write", &opt.write}, {"startofline", "sol", &opt.startofline},
         {"shiftround", "sr", &opt.shiftround}, {"tildeop", "top", &opt.tildeop}, {"gdefault", "gd", &opt.gdefault},
-        {"timeout", "to", &opt.timeout}, {"list", "list", &S.invisibles},
+        {"timeout", "to", &opt.timeout}, {"list", "list", &S.invisibles}, {"wrap", "wrap", &S.wrap},
+        {"linebreak", "lbr", &S.linebreak},
     };
     struct NumOpt { const char* name; const char* abbr; int* p; int lo, hi; };
     NumOpt nums[] = {
@@ -1602,18 +1622,20 @@ void Vim::exSet(const u32& args) {
     };
     struct StrOpt { const char* name; const char* abbr; std::string* p; };
     std::string ft, synStr;
+    // 'colorcolumn' is the right margin: "81" is a line after column 80, "+1" one after 'textwidth'
+    std::string cc = S.showMargin ? std::to_string(S.margin + 1) : "";
     StrOpt strs[] = {
         {"clipboard", "cb", &opt.clipboard}, {"nrformats", "nf", &opt.nrformats}, {"filetype", "ft", &ft},
-        {"syntax", "syn", &synStr},
+        {"syntax", "syn", &synStr}, {"colorcolumn", "cc", &cc},
     };
-    static const char* const IGNORED[] = {"wrap", "ruler", "showcmd", "showmode", "compatible", "cp",
+    static const char* const IGNORED[] = {"ruler", "showcmd", "showmode", "compatible", "cp",
                                           "hidden", "lazyredraw", "lz", "magic", "backup", "swapfile", "undofile",
                                           "modeline", "ml", "cursorline", "cul", "smartindent", "si", "cindent",
                                           "cin", "smarttab", "sta", "paste", "mouse", "encoding", "enc",
                                           "fileencoding", "fenc", "softtabstop", "sts", "laststatus", "ls",
                                           "background", "bg", "termguicolors", "tgc", "belloff", "bo", "wildmenu",
                                           "wmnu", "visualbell", "vb", "errorbells", "eb", "spell", "foldenable",
-                                          "fen", "linebreak", "lbr", "showmatch", "sm", "autoread", "ar",
+                                          "fen", "showmatch", "sm", "autoread", "ar",
                                           "writebackup", "wb", "title", "ttimeout", "ttimeoutlen", "ttm",
                                           "listchars", "lcs"};
     std::vector<u32> shown;
@@ -1661,7 +1683,8 @@ void Vim::exSet(const u32& args) {
             if (rest == "!") inv = true;
             else if (rest == "&") {
                 *b.p = (b.p == &S.autoindent || b.p == &opt.wrapscan || b.p == &opt.joinspaces ||
-                        b.p == &opt.startofline || b.p == &opt.timeout || b.p == &opt.write);
+                        b.p == &opt.startofline || b.p == &opt.timeout || b.p == &opt.write ||
+                        b.p == &S.linebreak);
                 break;
             } else if (!rest.empty()) {
                 error(tr(U"E474: Invalid argument: ") + item);
@@ -1717,7 +1740,11 @@ void Vim::exSet(const u32& args) {
                     message(U(std::string("  ") + s.name + "=" + v));
                     break;
                 }
-                if (rest == "&") { *s.p = s.p == &opt.nrformats ? "bin,hex" : ""; break; }
+                if (rest == "&") {
+                    *s.p = s.p == &opt.nrformats ? "bin,hex" : "";
+                    if (s.p == &cc) setColorColumn(cc, opt.textwidth);
+                    break;
+                }
                 size_t vstart = 1;
                 char mode = '=';
                 if (rest[0] == '+' || rest[0] == '-' || rest[0] == '^') { mode = rest[0]; vstart = 2; }
@@ -1733,6 +1760,7 @@ void Vim::exSet(const u32& args) {
                         else if (p > 0 && (*s.p)[p - 1] == ',') s.p->erase(p - 1, 1);
                     }
                 }
+                if (s.p == &cc && !setColorColumn(cc, opt.textwidth)) { error(tr(U"E474: Invalid argument: ") + item); return; }
                 if (s.p == &ft || s.p == &synStr) {
                     if (s.p == &synStr && (v == "off" || v.empty())) syn = false;
                     else if (!host->setFiletype(*s.p)) { error(tr(U"E474: Invalid argument: ") + item); return; }

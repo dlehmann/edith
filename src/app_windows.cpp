@@ -153,6 +153,7 @@ void App::saveView() {
     v.cy = ed.cy;
     v.cx = ed.cx;
     v.top = ed.top;
+    v.topRow = ed.topRow;
     v.left = ed.left;
     v.anch = ed.anch;
     v.anchor = ed.anchor;
@@ -170,6 +171,7 @@ static void loadView(Editor& ed, Vim& vim, const View& v) {
     ed.cx = std::clamp(v.cx, 0, int(ed.lines[size_t(ed.cy)].size()));
     ed.top = std::clamp(v.top, 0, std::max(0, ed.n() - 1));
     ed.left = std::max(0, v.left);
+    ed.topRow = std::max(0, v.topRow);
     ed.anch = v.anch;
     ed.anchor = v.anchor;
     ed.anchor.y = std::clamp(ed.anchor.y, 0, ed.n() - 1);
@@ -459,8 +461,10 @@ void App::gotoTab(int t) {
 Win* App::neighbor(char32_t dir, int count) {
     Win* w = win;
     for (int k = 0; k < std::max(1, count); k++) {
-        int row = ty() + std::clamp(ed.cy - ed.top, 0, th() - 1);
-        int col = tx() + std::clamp(ed.colOf(ed.lines[size_t(ed.cy)], ed.cx) - ed.left, 0, tw() - 1);
+        int cr, cc;
+        cursorCell(cr, cc);
+        int row = ty() + std::clamp(cr, 0, th() - 1);
+        int col = tx() + std::clamp(cc, 0, tw() - 1);
         if (w != win) {
             row = w->y;
             col = w->x;

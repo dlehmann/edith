@@ -13,6 +13,7 @@
 //   app_hex.cpp      hex mode
 
 #include <algorithm>
+#include <climits>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -67,7 +68,7 @@ struct Doc {
 
 // What a window shows of its buffer
 struct View {
-    int cy = 0, cx = 0, top = 0, left = 0;
+    int cy = 0, cx = 0, top = 0, left = 0, topRow = 0;
     bool anch = false;
     Pos anchor;
     int wantCol = -1, curswant = 0;
@@ -114,7 +115,8 @@ struct App {
     Vim vim{ed, &vimHost};
     u32 clip;                  // internal clipboard
     bool quit = false;
-    int dragging = 0;          // 1 = selecting text, 2 = vertical, 3 = horizontal scroll bar, 4 = window border
+    int dragging = 0;          // 1 = selecting text, 2 = vertical, 3 = horizontal scroll bar, 4 = window border,
+                               // 5 = the right margin
     Node* dragNode = nullptr;  // the layout node whose border is dragged
     int dragKid = 0;
     Clock::time_point lastClickT;
@@ -191,7 +193,12 @@ struct App {
     int menuAt(int x) const;
     void drawMenubar(int active);
     void drawLine(int x0, int left, int width, int y, const u32& l, int s, int e, const uint8_t* cls,
-                  const std::vector<std::pair<int, int>>* hl = nullptr, int eol = 0);  // eol: 1 LF, 2 CRLF
+                  const std::vector<std::pair<int, int>>* hl = nullptr, int eol = 0,  // eol: 1 LF, 2 CRLF
+                  int from = 0, int to = INT_MAX);  // only the characters [from, to) (soft wrap: from is at column left)
+    // The right margin in a row of a window (end = the column after the text); marginX() is its
+    // screen column, -1 when it is hidden or outside the text area
+    void drawMargin(int x0, int left, int width, int y, int end);
+    int marginX(int x0, int left, int width) const;
     u32 titleOf(const Editor& e) const;  // file name and " *" when modified
     void drawEditor();
     void drawWindow(Win& w, bool active);
@@ -203,6 +210,7 @@ struct App {
     void drawStatus(const u32* status);
     void drawAll(const u32* status = nullptr, int activeMenu = -1);
     void placeCursor();
+    void cursorCell(int& r, int& c) const;  // the cursor's row and column in the text area (may be outside)
     void dropRect(int mi, int& x, int& y, int& w, int& h) const;
     void drawDropdown(int mi, int cur);
 
@@ -239,6 +247,11 @@ struct App {
     void vscrollTo(int y);
     void hscrollTo(int x);
     void handleMouse();
+    void cursorIntoView();                          // after scrolling: the cursor line is visible
+    void textPos(int row, int col, int& ly, int& lx) const;  // the text at a row and column of the text area
+    bool onMargin(int x, int y) const;              // can the right margin be grabbed at the screen point?
+    static constexpr int MAX_MARGIN = 999;
+    void setMargin(int col);                        // and shows it in the status line
 
     // Reformat Code (app_format.cpp)
     u32 statusMsg;             // a message in the status line until the next key
